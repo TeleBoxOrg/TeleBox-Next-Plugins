@@ -152,7 +152,7 @@ async function resolveEntityWithFallback(
   let lastError: unknown;
   for (const attempt of attempts) {
     try {
-      return await (client as any).getEntity(attempt);
+      return await (client as any).resolvePeer(attempt);
     } catch (error) {
       lastError = error;
     }

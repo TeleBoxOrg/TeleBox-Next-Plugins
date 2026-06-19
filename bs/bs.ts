@@ -623,8 +623,7 @@ async function sendSourceFeedback(options: {
   if (!responses.length) return;
 
   try {
-    // await client.sendMessage(fromPeer, {
-    //   message: `亲爱的被观察者 您的 ${responses.join("\n")}`,
+    // await client.sendText(fromPeer, "")`,
     //
     //
     //   replyTo: buildReplyToForMessage(replyMessage),

@@ -218,11 +218,7 @@ ${recentErrors ? `<b>⚠️ 最近错误:</b>\n${recentErrors}` : ""}`;
     // 如果已有收藏夹消息，则编辑；否则创建新消息
     if (task.savedMessageId) {
       try {
-        await client.editMessage({
-          chatId: "me",
-          message: task.savedMessageId,
-          text: html(message),
-        });
+        await msg.edit({text: task.savedMessageId});
         return task.savedMessageId;
       } catch (editError) {
         // 如果编辑失败，创建新消息

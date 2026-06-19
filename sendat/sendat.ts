@@ -392,10 +392,7 @@ class SendTaskManager {
       const client = await getGlobalClient();
       if (!client) return;
 
-      await client.sendMessage(task.cid, {
-        message: task.msg,
-        parseMode: "html"
-      });
+      await client.sendText(task.cid, ""));
 
       task.current_count += 1;
       
@@ -453,12 +450,12 @@ seconds, minutes, hours, date, times`;
   description = this.helpText;
 
   cmdHandlers = {
-    sendat: async (msg: Api.Message) => {
+    sendat: async (msg: any) => {
       await this.handleSendAtCommand(msg);
     }
   };
 
-  private async handleSendAtCommand(msg: Api.Message): Promise<void> {
+  private async handleSendAtCommand(msg: any): Promise<void> {
     const client = await getGlobalClient();
     if (!client) return;
 
@@ -470,7 +467,7 @@ seconds, minutes, hours, date, times`;
     try {
       // 显示帮助
       if (!subCommand || subCommand === 'help' || subCommand === 'h') {
-        await msg.edit({ text: this.helpText, parseMode: "html" });
+        await msg.edit({ text: this.helpText });
         return;
       }
 
@@ -503,13 +500,12 @@ seconds, minutes, hours, date, times`;
 
     } catch (error: any) {
       await msg.edit({
-        text: `❌ <b>错误：</b>${htmlEscape(error.message)}`,
-        parseMode: "html"
+        text: `❌ <b>错误：</b>${htmlEscape(error.message)}`
       });
     }
   }
 
-  private async handleListTasks(msg: Api.Message, showAll: boolean): Promise<void> {
+  private async handleListTasks(msg: any, showAll: boolean): Promise<void> {
     const chatId = msg.chatId?.toJSNumber() || 0;
     let tasks: SendTask[];
 
@@ -520,7 +516,7 @@ seconds, minutes, hours, date, times`;
       const userId = msg.senderId?.toJSNumber();
       
       if (!userId || !sudoDBInstance.has(userId)) {
-        await msg.edit({ text: "❌ 只有管理员可以查看所有任务", parseMode: "html" });
+        await msg.edit({ text: "❌ 只有管理员可以查看所有任务" });
         return;
       }
       tasks = this.taskManager.getAllTasks();
@@ -530,8 +526,7 @@ seconds, minutes, hours, date, times`;
 
     if (tasks.length === 0) {
       await msg.edit({ 
-        text: showAll ? "📝 没有已注册的任务" : "📝 您没有已注册的任务",
-        parseMode: "html" 
+        text: showAll ? "📝 没有已注册的任务" : "📝 您没有已注册的任务" 
       });
       return;
     }
@@ -542,19 +537,19 @@ seconds, minutes, hours, date, times`;
       response += `• ${task.getDescription()}\n\n`;
     });
 
-    await msg.edit({ text: response, parseMode: "html" });
+    await msg.edit({ text: response });
   }
 
-  private async handleRemoveTask(msg: Api.Message, taskIdStr: string): Promise<void> {
+  private async handleRemoveTask(msg: any, taskIdStr: string): Promise<void> {
     const taskId = parseInt(taskIdStr);
     if (isNaN(taskId)) {
-      await msg.edit({ text: "❌ 请输入有效的任务ID", parseMode: "html" });
+      await msg.edit({ text: "❌ 请输入有效的任务ID" });
       return;
     }
 
     const task = this.taskManager.getTask(taskId);
     if (!task) {
-      await msg.edit({ text: "❌ 任务不存在", parseMode: "html" });
+      await msg.edit({ text: "❌ 任务不存在" });
       return;
     }
 
@@ -565,54 +560,54 @@ seconds, minutes, hours, date, times`;
     const userId = msg.senderId?.toJSNumber();
 
     if (task.cid !== chatId && (!userId || !sudoDBInstance.has(userId))) {
-      await msg.edit({ text: "❌ 只能删除自己的任务", parseMode: "html" });
+      await msg.edit({ text: "❌ 只能删除自己的任务" });
       return;
     }
 
     const success = await this.taskManager.removeTask(taskId);
     if (success) {
-      await msg.edit({ text: `✅ 已删除任务 #${taskId}`, parseMode: "html" });
+      await msg.edit({ text: `✅ 已删除任务 #${taskId}` });
     } else {
-      await msg.edit({ text: "❌ 删除任务失败", parseMode: "html" });
+      await msg.edit({ text: "❌ 删除任务失败" });
     }
   }
 
-  private async handlePauseTask(msg: Api.Message, taskIdStr: string): Promise<void> {
+  private async handlePauseTask(msg: any, taskIdStr: string): Promise<void> {
     const taskId = parseInt(taskIdStr);
     if (isNaN(taskId)) {
-      await msg.edit({ text: "❌ 请输入有效的任务ID", parseMode: "html" });
+      await msg.edit({ text: "❌ 请输入有效的任务ID" });
       return;
     }
 
     const success = await this.taskManager.pauseTask(taskId);
     if (success) {
-      await msg.edit({ text: `⏸️ 已暂停任务 #${taskId}`, parseMode: "html" });
+      await msg.edit({ text: `⏸️ 已暂停任务 #${taskId}` });
     } else {
-      await msg.edit({ text: "❌ 暂停任务失败", parseMode: "html" });
+      await msg.edit({ text: "❌ 暂停任务失败" });
     }
   }
 
-  private async handleResumeTask(msg: Api.Message, taskIdStr: string): Promise<void> {
+  private async handleResumeTask(msg: any, taskIdStr: string): Promise<void> {
     const taskId = parseInt(taskIdStr);
     if (isNaN(taskId)) {
-      await msg.edit({ text: "❌ 请输入有效的任务ID", parseMode: "html" });
+      await msg.edit({ text: "❌ 请输入有效的任务ID" });
       return;
     }
 
     const success = await this.taskManager.resumeTask(taskId);
     if (success) {
-      await msg.edit({ text: `▶️ 已恢复任务 #${taskId}`, parseMode: "html" });
+      await msg.edit({ text: `▶️ 已恢复任务 #${taskId}` });
     } else {
-      await msg.edit({ text: "❌ 恢复任务失败", parseMode: "html" });
+      await msg.edit({ text: "❌ 恢复任务失败" });
     }
   }
 
-  private async handleAddTask(msg: Api.Message): Promise<void> {
+  private async handleAddTask(msg: any): Promise<void> {
     const text = msg.text || "";
     const commandMatch = text.match(/^[.!。]sendat\s+(.+)/i);
     
     if (!commandMatch) {
-      await msg.edit({ text: "❌ 命令格式错误", parseMode: "html" });
+      await msg.edit({ text: "❌ 命令格式错误" });
       return;
     }
 
@@ -637,8 +632,7 @@ seconds, minutes, hours, date, times`;
       await this.taskManager.addTask(task);
       
       await msg.edit({ 
-        text: `✅ <b>已添加任务 #${task.task_id}</b>\n\n${task.getDescription()}`,
-        parseMode: "html" 
+        text: `✅ <b>已添加任务 #${task.task_id}</b>\n\n${task.getDescription()}` 
       });
     } catch (error: any) {
       throw new Error(`添加任务失败: ${error.message}`);

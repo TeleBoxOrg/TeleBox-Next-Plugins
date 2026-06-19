@@ -263,7 +263,7 @@ class UserResolver {
     target: any
   ): Promise<any | null> {
     try {
-      return await (client as any).getEntity(target);
+      return await (client as any).resolvePeer(target);
     } catch {
       return null;
     }
@@ -376,20 +376,13 @@ class MessageManager {
   static async smartEdit(
     message: any,
     text: string,
-    deleteAfter: number = CONFIG.MESSAGE_AUTO_DELETE,
-    parseMode: "html" | "md" = "html"
+    deleteAfter: number = CONFIG.MESSAGE_AUTO_DELETE
   ): Promise<any> {
     try {
       const client = await getGlobalClient();
       if (!client) return message;
 
-      await client.editMessage({
-        chatId: message.peerId,
-        message: message.id,
-        text: text,
-        // parseMode not supported in mtcute editMessage
-        disableWebPreview: false,
-      });
+      await message.edit({text});
 
       if (deleteAfter > 0) {
         const lifecycle = getCurrentGenerationContext();
@@ -432,7 +425,7 @@ type ManagedGroup = {
 };
 
 /**
- * 把 ManagedGroup 转成可以直接喂给 Api.channels.* 的 channel 参数。
+ * 把 ManagedGroup 转成可以直接喂给 any.* 的 channel 参数。
  * - channel 有 accessHash → 构造完整 InputChannel，直接走，不触发 GetChannels 兜底
  * - channel 无 accessHash（旧缓存或未填）→ 通过 getInputEntity 让 teleproto 自行解析
  * - basic group → 返回裸 id（调用方应通过 kind 分流到 messages.* 路径）
@@ -457,7 +450,7 @@ async function resolveChannelInput(
 
 /**
  * 把 ManagedGroup 转成 PermissionManager 那一组方法能识别的 chatId。
- * - channel：返回 InputChannel（带 accessHash），走 Api.channels.GetParticipant
+ * - channel：返回 InputChannel（带 accessHash），走 any.GetParticipant
  * - basic group：返回 PeerChat-like 对象，让 getChatKind/getBasicGroupChatId 走 chat 路径
  */
 async function resolvePermissionTarget(
@@ -645,7 +638,7 @@ class GroupManager {
             const rawHash = isChannel ? dialog.entity?.accessHash : undefined;
             const accessHash = rawHash != null ? String(rawHash) : undefined;
             // ⚠️ dialog.id 是 marked id（channel: -100xxxx，basic group: -xxx），
-            // 而 Api.InputChannel.channelId / Api.messages.DeleteChatUser.chatId 需要 raw 正数 id。
+            // 而 any.channelId / any.DeleteChatUser.chatId 需要 raw 正数 id。
             // 这里必须用 dialog.entity.id（Channel/Chat 实体上的原始正数 id），否则服务端会
             // 直接 CHANNEL_INVALID / PEER_ID_INVALID，导致批量 sb 全部失败。
             const rawId = Number(dialog.entity?.id ?? dialog.id);

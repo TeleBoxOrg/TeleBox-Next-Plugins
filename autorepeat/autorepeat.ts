@@ -153,19 +153,13 @@ class MessageManager {
   static async smartEdit(
     message: MessageContext | undefined,
     text: string,
-    deleteAfter: number = CONFIG.MESSAGE_AUTO_DELETE,
-    parseMode: "html" | "md" = "html"
+    deleteAfter: number = CONFIG.MESSAGE_AUTO_DELETE
   ): Promise<MessageContext | undefined> {
     try {
       const client = await getGlobalClient();
       if (!client || !message) return message;
 
-      await client.editMessage({
-        chatId: message.chat.id,
-        message: message.id,
-        text: html(text),
-        disableWebPreview: true,
-      });
+      await msg.edit({text: message.id});
 
       if (deleteAfter > 0) {
         const timer = setTimeout(async () => {

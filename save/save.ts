@@ -260,7 +260,7 @@ class PrometheusPlugin extends Plugin {
 
     try {
       const client = await getGlobalClient();
-      const entity = await (client as any).getEntity(chatId);
+      const entity = await (client as any).resolvePeer(chatId);
 
       const title =
         (entity as any)?.title ||
@@ -297,7 +297,6 @@ class PrometheusPlugin extends Plugin {
 
       await (client as any).sendMessage(targetPeer, {
         message: sourceText,
-        parseMode: 'html',
         replyTo: forwardedMsg.id
       });
 
@@ -354,7 +353,6 @@ class PrometheusPlugin extends Plugin {
 
       await (client as any).sendMessage(targetPeer, {
         message: sourceText,
-        parseMode: 'html',
         replyTo: forwardedMsg.id
       });
     } catch (error) {
@@ -386,7 +384,6 @@ class PrometheusPlugin extends Plugin {
 
       await (client as any).sendMessage(targetPeer, {
         message: `🔗 <b>范围保存来源</b>\n\n${blocks.join('\n\n')}`,
-        parseMode: 'html',
         replyTo: forwardedMsg.id
       });
     } catch (error) {

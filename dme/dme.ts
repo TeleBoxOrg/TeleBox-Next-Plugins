@@ -168,14 +168,10 @@ async function editMediaMessageToAntiRecall(
 
   try {
     const buffer = fs.readFileSync(trollImagePath);
-    await client.editMessage({
-      chatId: chatPeer,
+    await (client as any).editMessage({
+      peer: chatPeer,
       message: message.id,
-      media: {
-        type: "photo",
-        file: buffer,
-        fileName: "dme_troll.jpg",
-      } as any,
+      file: buffer,
     });
     return true;
   } catch {
@@ -204,8 +200,8 @@ async function editTextMessageToPlaceholder(
   }
 
   try {
-    await client.editMessage({
-      chatId: chatPeer,
+    await (client as any).editMessage({
+      peer: chatPeer,
       message: message.id,
       text: TEXT_PLACEHOLDER,
     });

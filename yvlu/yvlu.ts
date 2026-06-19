@@ -605,10 +605,8 @@ class YvluPlugin extends Plugin {
 
           // 获取消息列表：使用 getHistory 获取 replied 之前的消息
           const messages: Message[] = [];
-          for await (const m of (client as any).iterMessages(replied.chat.id, {
-            offsetId: replied.id,
-            limit: count,
-          })) {
+          const m_list = await (client as any).getMessages(replied.chat.id, { limit: 50 });
+  for (const m of m_list) {
             messages.push(m);
           }
           messages.reverse(); // 按时间正序

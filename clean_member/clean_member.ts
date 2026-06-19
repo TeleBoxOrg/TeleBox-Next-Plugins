@@ -736,11 +736,7 @@ const clean_member = async (msg: MessageContext) => {
       } else {
         if (savedMessageId) {
           try {
-            await client.editMessage({
-              chatId: "me",
-              message: savedMessageId,
-              text: progressMessage,
-            } as any);
+            await msg.edit({text: savedMessageId} as any);
           } catch (error) {
             const newMsg = await client.sendText("me", progressMessage as any);
             if (newMsg && typeof newMsg.id === 'number') {
@@ -845,11 +841,7 @@ const clean_member = async (msg: MessageContext) => {
       });
     } else {
       if (savedMessageId) {
-        await client.editMessage({
-          chatId: "me",
-          message: savedMessageId,
-          text: html(finalMessage),
-        } as any);
+        await msg.edit({text: savedMessageId} as any);
       } else {
         await client.sendText("me", html(finalMessage) as any);
       }

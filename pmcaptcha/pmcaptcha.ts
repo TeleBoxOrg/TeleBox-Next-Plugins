@@ -765,11 +765,11 @@ async function refreshActiveCaptchas(client: TelegramClient): Promise<void> {
       const isImg = state.mode === CaptchaMode.IMG_DIGIT || state.mode === CaptchaMode.IMG_MIXED;
       if (isImg) {
         const newCaption = rebuildImgCaption(state);
-        await client.editMessage({ chatId: userId, message: promptMsgId, text: newCaption });
+        await msg.edit({text: promptMsgId});
       } else {
         const newText = rebuildCaptchaText(state);
         if (newText) {
-          await client.editMessage({ chatId: userId, message: promptMsgId, text: html(newText) });
+          await msg.edit({text: promptMsgId});
         }
       }
     } catch (e) {
@@ -1399,12 +1399,7 @@ const pmcaptcha = async (message: MessageContext) => {
 
   const edit = async (text: string) => {
     try {
-      await client.editMessage({
-        chatId: message.chat.id,
-        message: message.id,
-        text: html(text),
-        disableWebPreview: true
-      });
+      await msg.edit({text: message.id});
     } catch (e: any) {
       if (String(e).includes("Could not find the input entity")) {
         try { await message.replyText(html(text), { disableWebPreview: true } as any); } catch {}

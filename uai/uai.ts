@@ -201,7 +201,7 @@ function normalizeId(id: any): string {
     if (id === null || id === undefined) return "";
     // 处理 BigInt
     if (typeof id === "bigint") return id.toString();
-    // 处理对象（可能是 Api.PeerUser 等）
+    // 处理对象（可能是 any 等）
     if (typeof id === "object") {
         // 尝试获取 userId、channelId 或 value
         const val = id.userId || id.channelId || id.chatId || id.value || id;
@@ -230,7 +230,7 @@ async function collectMessages(
     if (filterSenderId) {
         try {
             // 尝试获取用户实体
-            const userEntity = await client.getEntity(filterSenderId);
+            const userEntity = await client.resolvePeer(filterSenderId);
             iterParams.fromUser = userEntity;
             console.log(`[UAI] Using fromUser filter: ${filterSenderId}`);
         } catch (e) {
@@ -566,7 +566,7 @@ class UAIPlugin extends Plugin {
                         let channelName = "频道";
                         let channelUsername: string | undefined = undefined;
                         try {
-                            const channelEntity = await client.getEntity(channelPeerId);
+                            const channelEntity = await client.resolvePeer(channelPeerId);
                             channelName = (channelEntity as any).title || (channelEntity as any).username || "频道";
                             channelUsername = (channelEntity as any).username;
                         } catch { }
@@ -587,7 +587,7 @@ class UAIPlugin extends Plugin {
                     } else if (fwdId.userId) {
                         sourceId = fwdId.userId.toString();
                         try {
-                            const entity = await client.getEntity(fwdId.userId) as any;
+                            const entity = await client.resolvePeer(fwdId.userId) as any;
                             sourceName = entity.firstName || entity.username || "用户";
                             sourceUsername = entity.username;
                         } catch { }
@@ -598,7 +598,7 @@ class UAIPlugin extends Plugin {
                     if (senderId) {
                         sourceId = senderId.toString();
                         try {
-                            const entity = await client.getEntity(senderId) as any;
+                            const entity = await client.resolvePeer(senderId) as any;
                             sourceName = entity.firstName || entity.username || "用户";
                             sourceUsername = entity.username;
                         } catch { }

@@ -799,7 +799,8 @@ const getMessageImageParts = async (
   const peer = msg.chat.id;
   const sameGroupMessages: MessageContext[] = [];
 
-  for await (const m of (msg.client as any).iterMessages(peer, { limit: 50 })) {
+  const messages = await (msg.client as any).getMessages(peer, { limit: 50 });
+  for (const m of messages) {
     if (!(m as any)?.client) continue;
 
     const g = (m as any).groupedId;
@@ -828,7 +829,8 @@ const getGroupedMessageIds = async (msg: MessageContext): Promise<number[]> => {
   const peer = msg.chat.id;
   const ids: number[] = [];
 
-  for await (const m of (msg.client as any).iterMessages(peer, { limit: 50 })) {
+  const messages = await (msg.client as any).getMessages(peer, { limit: 50 });
+  for (const m of messages) {
     if (!(m as any)?.client) continue;
     const g = (m as any).groupedId;
     if (!g) continue;
