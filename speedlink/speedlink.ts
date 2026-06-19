@@ -708,11 +708,9 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
       for (const server of targetServers) {
         if (!server) continue;
 
-        const statusMsg = await (msg.client as any)?.sendMessage(msg.chat.id, {
-          message: `⚡️ [${targetServers.indexOf(server) + 1}/${
+        const statusMsg = await (msg.client as any)?.sendText(msg.chat.id, `⚡️ [${targetServers.indexOf(server) + 1}/${
             targetServers.length
-          }] 正在为 <b>${htmlEscape(server.name)}</b> 进行远程测速...`,
-        });
+          }] 正在为 <b>${htmlEscape(server.name)}</b> 进行远程测速...`);
 
         try {
           const speedtestArgs = ["--accept-license", "--accept-gdpr", "-f", "json"];
@@ -853,9 +851,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
 
     let statusMsg: MessageContext | undefined;
     try {
-      statusMsg = await (msg.client as any)?.sendMessage(msg.chat.id, {
-        message: initialText,
-      });
+      statusMsg = await (msg.client as any)?.sendText(msg.chat.id, initialText);
       await msg.delete();
     } catch (e) {
       console.error("Failed to send/delete, falling back to editing original message:", e);
@@ -963,9 +959,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
         });
         fs.unlinkSync(imagePath);
       } else {
-        await (msg.client as any)?.sendMessage(msg.chat.id, {
-          message: caption,
-        });
+        await (msg.client as any)?.sendText(msg.chat.id, caption);
       }
       if (statusMsg) await statusMsg.delete();
     } catch (error: any) {

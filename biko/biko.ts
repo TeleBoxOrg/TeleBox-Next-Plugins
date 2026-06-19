@@ -394,9 +394,9 @@ async function collectMessagesOnce(
     iterParams.fromUser = sourceUser.entity;
   }
 
-  const iterator = client.iterMessages(sourceChat.entity, iterParams);
+  const messages = await client.getMessages(sourceChat.entity, iterParams);
 
-  for await (const message of iterator) {
+  for (const message of messages) {
     const current = message as any;
 
     if (sourceUser.manualMode) {

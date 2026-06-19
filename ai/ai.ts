@@ -850,7 +850,7 @@ const deleteMessageOrGroup = async (msg: MessageContext): Promise<void> => {
     const ids = await getGroupedMessageIds(msg);
 
     if (ids.length > 1) {
-      await (msg.client as any).deleteMessages(peer, ids, { revoke: true });
+      await (msg.client as any).deleteMessages({peer: peer, messages: ids, revoke: true});
       return;
     }
     await msg.delete();
@@ -1190,8 +1190,7 @@ class MessageSender {
 
     const topicRootId = getTopicRootId(msg);
     const replyTo = replyToId ?? topicRootId;
-    return await (msg.client as any).sendMessage(msg.chat.id, {
-      message: text,
+    return await (msg.client as any).sendText(msg.chat.id, text, {
       ...(options || {}),
       ...(replyTo ? { replyTo } : {}),
     });
