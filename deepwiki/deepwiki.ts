@@ -102,7 +102,7 @@ const requireUser = (cond: any, msg: string) => {
 };
 
 class MessageSender {
-  static async sendOrEdit(msg: MessageContext, text: string | "markdown" = "html"): Promise<any | undefined> {
+  static async sendOrEdit(msg: MessageContext, text: string, parseMode: "markdown" | "html" = "html"): Promise<any | undefined> {
     try {
       return await msg.edit({ text: html(text), disableWebPreview: true } as any);
     } catch {
@@ -112,7 +112,8 @@ class MessageSender {
 
   static async sendNew(
     msg: MessageContext,
-    text: string | "markdown" = "html",
+    text: string,
+    parseMode: "markdown" | "html" = "html",
     replyToId?: number,
     linkPreview: boolean = false
   ): Promise<any | undefined> {

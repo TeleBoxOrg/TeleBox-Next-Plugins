@@ -392,7 +392,7 @@ class SendTaskManager {
       const client = await getGlobalClient();
       if (!client) return;
 
-      await client.sendText(task.cid, ""));
+      await client.sendText(task.cid, "");
 
       task.current_count += 1;
       

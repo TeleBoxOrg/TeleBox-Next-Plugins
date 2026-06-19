@@ -159,7 +159,7 @@ class MessageManager {
       const client = await getGlobalClient();
       if (!client || !message) return message;
 
-      await msg.edit({text: message.id});
+      await message.edit({text});
 
       if (deleteAfter > 0) {
         const timer = setTimeout(async () => {
