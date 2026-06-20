@@ -367,11 +367,424 @@ class NameManager {
     'America/Denver': { standard: 'MST', daylight: 'MDT' },
     'America/Detroit': { standard: 'EST', daylight: 'EDT' },
     'America/Halifax': { standard: 'AST', daylight: 'ADT' },
-    'America/Los_Angeles': { standard: 'PST', dayligh
+    'America/Los_Angeles': { standard: 'PST', daylight: 'PDT' },
+    'America/New_York': { standard: 'EST', daylight: 'EDT' },
+    'America/Santiago': { standard: 'CLT', daylight: 'CLST' },
+    'America/St_Johns': { standard: 'NST', daylight: 'NDT' },
+    'America/Toronto': { standard: 'EST', daylight: 'EDT' },
+    'America/Vancouver': { standard: 'PST', daylight: 'PDT' },
+    'America/Winnipeg': { standard: 'CST', daylight: 'CDT' },
+    'Atlantic/Azores': { standard: 'AZOT', daylight: 'AZOST' },
+    'Atlantic/Bermuda': { standard: 'AST', daylight: 'ADT' },
+    'Australia/Adelaide': { standard: 'ACST', daylight: 'ACDT' },
+    'Australia/Hobart': { standard: 'AEST', daylight: 'AEDT' },
+    'Australia/Melbourne': { standard: 'AEST', daylight: 'AEDT' },
+    'Australia/Sydney': { standard: 'AEST', daylight: 'AEDT' },
+    'Europe/Athens': { standard: 'EET', daylight: 'EEST' },
+    'Europe/Berlin': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Brussels': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Dublin': { standard: 'GMT', daylight: 'IST' },
+    'Europe/Helsinki': { standard: 'EET', daylight: 'EEST' },
+    'Europe/Lisbon': { standard: 'WET', daylight: 'WEST' },
+    'Europe/London': { standard: 'GMT', daylight: 'BST' },
+    'Europe/Madrid': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Paris': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Prague': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Rome': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Vienna': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Warsaw': { standard: 'CET', daylight: 'CEST' },
+    'Europe/Zurich': { standard: 'CET', daylight: 'CEST' },
+    'Pacific/Auckland': { standard: 'NZST', daylight: 'NZDT' },
+    'Pacific/Chatham': { standard: 'CHAST', daylight: 'CHADT' }
+  };
 
-... [OUTPUT TRUNCATED - 16976 chars omitted out of 66976 total] ...
+  static getInstance(): NameManager {
+    return NameManager.instance ??= new NameManager();
+  }
 
-UserSettings): Promise<{ firstName: string; lastName: string | null }> {
+  private getOffsetKey(sign: string, hours: number, minutes: number): string {
+    return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  }
+
+  private getIntlTimezoneAbbreviation(timezone: string): string | null {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        timeZoneName: 'short'
+      }).formatToParts(new Date());
+
+      const abbreviation = parts.find(part => part.type === 'timeZoneName')?.value?.trim();
+      if (!abbreviation) return null;
+      if (/^GMT[+-]/.test(abbreviation)) return null;
+      return abbreviation;
+    } catch {
+      return null;
+    }
+  }
+
+  private getOffsetMinutesForDate(timezone: string, date: Date): number | null {
+    try {
+      const parts = new Intl.DateTimeFormat('en', {
+        timeZone: timezone,
+        timeZoneName: 'longOffset'
+      }).formatToParts(date);
+
+      const offsetPart = parts.find(part => part.type === 'timeZoneName')?.value;
+      if (!offsetPart) return null;
+
+      const match = offsetPart.match(/GMT([+-])(\d{2}):(\d{2})/);
+      if (!match) return null;
+
+      const sign = match[1] === '+' ? 1 : -1;
+      const hours = parseInt(match[2], 10);
+      const minutes = parseInt(match[3], 10);
+      return sign * (hours * 60 + minutes);
+    } catch {
+      return null;
+    }
+  }
+
+  private getSeasonalTimezoneAbbreviation(timezone: string): string | null {
+    const abbreviations = this.seasonalTimezoneAbbreviationMap[timezone];
+    if (!abbreviations) return null;
+
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const januaryOffset = this.getOffsetMinutesForDate(timezone, new Date(Date.UTC(year, 0, 1, 12, 0, 0)));
+    const julyOffset = this.getOffsetMinutesForDate(timezone, new Date(Date.UTC(year, 6, 1, 12, 0, 0)));
+    const currentOffset = this.getOffsetMinutesForDate(timezone, now);
+
+    if (januaryOffset === null || julyOffset === null || currentOffset === null || januaryOffset === julyOffset) {
+      return null;
+    }
+
+    const daylightOffset = Math.max(januaryOffset, julyOffset);
+    return currentOffset === daylightOffset ? abbreviations.daylight : abbreviations.standard;
+  }
+
+  private getTimezoneAbbreviation(timezone: string, sign: string, hours: number, minutes: number): string {
+    const intlAbbreviation = this.getIntlTimezoneAbbreviation(timezone);
+    if (intlAbbreviation) return intlAbbreviation;
+
+    const seasonalAbbreviation = this.getSeasonalTimezoneAbbreviation(timezone);
+    if (seasonalAbbreviation) return seasonalAbbreviation;
+
+    const exact = this.timezoneAbbreviationMap[timezone];
+    if (exact) return exact;
+
+    const offsetKey = this.getOffsetKey(sign, hours, minutes);
+    return this.offsetAbbreviationFallbacks[offsetKey] || `GMT${offsetKey}`;
+  }
+
+  async getCurrentProfile(): Promise<{ firstName: string; lastName: string } | null> {
+    if (this.profileCache && Date.now() - this.profileCache.timestamp < this.CACHE_TTL) {
+      return this.profileCache.data;
+    }
+    
+    try {
+      const client = await getGlobalClient();
+      if (!client) return null;
+
+      const me = await client.getMe();
+      const profile = { firstName: me.firstName || "", lastName: me.lastName || "" };
+      
+      this.profileCache = { data: profile, timestamp: Date.now() };
+      return profile;
+    } catch {
+      return null;
+    }
+  }
+
+  async saveCurrentNickname(userId: number): Promise<boolean> {
+    const profile = await this.getCurrentProfile();
+    if (!profile) return false;
+
+    const settings: UserSettings = {
+      user_id: userId,
+      timezone: "Asia/Shanghai",
+      original_first_name: this.cleanTimeFromName(profile.firstName),
+      original_last_name: this.cleanTimeFromName(profile.lastName) || null,
+      is_enabled: false,
+      mode: "time",
+      last_update: null,
+      text_index: 0,
+      show_clock_emoji: false,  // 默认关闭时钟emoji
+      show_time: true,          // 默认开启时间显示
+      show_timezone: false,     // 默认关闭时区显示  
+      timezone_format: "GMT",  // 默认时区格式
+      display_order: "name,time", // 默认只显示姓名和时间
+      weather_enabled: false,
+      weather_location: "",
+      weather_compact: "",
+      weather_cache_ts: 0,
+      text_style: "normal"
+    };
+
+    return await DataManager.saveUserSettings(settings);
+  }
+
+  private readonly cleanTimeRegex = /\b\d{1,2}:\d{2}(\s?(AM|PM))?\b/gi;
+  private readonly clockEmojiRegex = /[\u{1F550}-\u{1F567}]/gu;
+  
+  cleanTimeFromName(name: string): string {
+    if (!name) return "";
+    return name.substring(0, 128)
+      .replace(this.cleanTimeRegex, "")
+      .replace(this.clockEmojiRegex, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  formatTime(timezone: string): string {
+    try {
+      const timeStr = new Date().toLocaleTimeString("zh-CN", {
+        timeZone: timezone, hour12: false, hour: "2-digit", minute: "2-digit"
+      });
+      if (timeStr.startsWith("24:")) {
+        return "00:" + timeStr.slice(3);
+      }
+      return timeStr;
+    } catch {
+      const now = new Date();
+      return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+  }
+
+  getClockEmoji(timezone: string): string {
+    try {
+      const hour = parseInt(new Date().toLocaleTimeString("zh-CN", {
+        timeZone: timezone, hour12: false, hour: "2-digit"
+      }).split(':')[0]);
+      const clocks = ['🕛', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚'];
+      return clocks[hour % 12];
+    } catch { return '🕐'; }
+  }
+
+  private getDoubleStruckUpper(char: string): string {
+    const map: Record<string, string> = {
+      A: '𝔸', B: '𝔹', C: 'ℂ', D: '𝔻', E: '𝔼', F: '𝔽', G: '𝔾', H: 'ℍ', I: '𝕀', J: '𝕁',
+      K: '𝕂', L: '𝕃', M: '𝕄', N: 'ℕ', O: '𝕆', P: 'ℙ', Q: 'ℚ', R: 'ℝ', S: '𝕊', T: '𝕋',
+      U: '𝕌', V: '𝕍', W: '𝕎', X: '𝕏', Y: '𝕐', Z: 'ℤ'
+    };
+    return map[char] || char;
+  }
+
+  private stylizeChar(char: string, style: TextStyleMode): string {
+    if (style === "normal") return char;
+
+    const code = char.codePointAt(0);
+    if (code === undefined) return char;
+
+    if (style === "italic") {
+      if (char >= '0' && char <= '9') return String.fromCodePoint(0x1D7CE + (code - 0x30));
+      if (char >= 'A' && char <= 'Z') return String.fromCodePoint(0x1D400 + (code - 0x41));
+      if (char >= 'a' && char <= 'z') return String.fromCodePoint(0x1D41A + (code - 0x61));
+      return char;
+    }
+
+    if (style === "double") {
+      if (char >= '0' && char <= '9') return String.fromCodePoint(0x1D7D8 + (code - 0x30));
+      if (char >= 'A' && char <= 'Z') return this.getDoubleStruckUpper(char);
+      if (char >= 'a' && char <= 'z') return String.fromCodePoint(0x1D552 + (code - 0x61));
+      return char;
+    }
+
+    if (style === "sans") {
+      if (char >= '0' && char <= '9') return String.fromCodePoint(0x1D7EC + (code - 0x30));
+      if (char >= 'A' && char <= 'Z') return String.fromCodePoint(0x1D5D4 + (code - 0x41));
+      if (char >= 'a' && char <= 'z') return String.fromCodePoint(0x1D5EE + (code - 0x61));
+      return char;
+    }
+
+    if (style === "mono") {
+      if (char >= '0' && char <= '9') return String.fromCodePoint(0x1D7F6 + (code - 0x30));
+      if (char >= 'A' && char <= 'Z') return String.fromCodePoint(0x1D670 + (code - 0x41));
+      if (char >= 'a' && char <= 'z') return String.fromCodePoint(0x1D68A + (code - 0x61));
+      return char;
+    }
+
+    if (style === "outline") {
+      if (char >= '0' && char <= '9') return String.fromCodePoint(0x1D7E2 + (code - 0x30));
+      if (char >= 'A' && char <= 'Z') return String.fromCodePoint(0x1D5A0 + (code - 0x41));
+      if (char >= 'a' && char <= 'z') return String.fromCodePoint(0x1D5BA + (code - 0x61));
+      return char;
+    }
+
+    return char;
+  }
+
+  applyTextStyle(text: string, style?: TextStyleMode): string {
+    const finalStyle = style || "normal";
+    if (finalStyle === "normal" || !text) return text;
+    return Array.from(text).map(char => this.stylizeChar(char, finalStyle)).join("");
+  }
+
+  private async normalizeWeatherLocation(location: string): Promise<string> {
+    const normalized = location.trim();
+    if (!normalized || !/[\u4e00-\u9fa5]/.test(normalized)) {
+      return normalized;
+    }
+
+    const quickMap: Record<string, string> = {
+      "北京": "Beijing", "上海": "Shanghai", "广州": "Guangzhou", "深圳": "Shenzhen",
+      "成都": "Chengdu", "杭州": "Hangzhou", "武汉": "Wuhan", "西安": "Xi'an",
+      "重庆": "Chongqing", "南京": "Nanjing", "天津": "Tianjin", "苏州": "Suzhou",
+      "香港": "Hong Kong", "澳门": "Macau", "台北": "Taipei", "东京": "Tokyo",
+      "首尔": "Seoul", "曼谷": "Bangkok", "新加坡": "Singapore", "伦敦": "London",
+      "巴黎": "Paris", "柏林": "Berlin", "纽约": "New York", "洛杉矶": "Los Angeles",
+      "旧金山": "San Francisco", "悉尼": "Sydney", "墨尔本": "Melbourne"
+    };
+
+    if (quickMap[normalized]) return quickMap[normalized];
+
+    try {
+      const translateModule = await import("@vitalets/google-translate-api");
+      const translate = translateModule.translate || translateModule.default;
+      if (typeof translate !== "function") return normalized;
+
+      const result = await translate(normalized, { to: "en" });
+      const translated = typeof result === "string" ? result : result?.text;
+      return typeof translated === "string" && translated.trim() ? translated.trim() : normalized;
+    } catch {
+      return normalized;
+    }
+  }
+
+  private weatherCodeEmoji(code: number): string {
+    const map: Record<number, string> = {
+      0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 48: '🌫️',
+      51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌨️', 57: '🌨️',
+      61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌨️', 67: '🌨️',
+      71: '❄️', 73: '❄️', 75: '❄️', 77: '🌨️',
+      80: '🌦️', 81: '🌧️', 82: '⛈️', 85: '🌨️', 86: '🌨️', 95: '⛈️', 96: '⛈️', 99: '⛈️'
+    };
+    return map[code] || '🌤️';
+  }
+
+  public async getWeatherCompact(settings: UserSettings): Promise<string> {
+    const rawLocation = settings.weather_location?.trim() || "";
+    if (!rawLocation) return "";
+
+    const now = Date.now();
+    const successTtl = 30 * 60 * 1000;
+    const failureTtl = 5 * 60 * 1000;
+    const cachedCompact = settings.weather_compact || "";
+    const cacheTs = typeof settings.weather_cache_ts === "number" ? settings.weather_cache_ts : 0;
+    const cacheAge = cacheTs > 0 ? now - cacheTs : Number.POSITIVE_INFINITY;
+
+    if ((cachedCompact && cacheAge < successTtl) || (!cachedCompact && cacheTs > 0 && cacheAge < failureTtl)) {
+      return cachedCompact;
+    }
+
+    try {
+      const axios = (await import("axios")).default;
+      const geocodingName = await this.normalizeWeatherLocation(rawLocation);
+
+      const geoResp = await axios.get<WeatherGeocodingResponse>("https://geocoding-api.open-meteo.com/v1/search", {
+        params: { name: geocodingName, count: 5, language: "zh", format: "json" },
+        timeout: 10000
+      });
+
+      const results = geoResp.data?.results || [];
+      if (results.length === 0) throw new Error("城市未找到");
+
+      const loc = results[0];
+      const wResp = await axios.get<WeatherForecastResponse>("https://api.open-meteo.com/v1/forecast", {
+        params: { latitude: loc.latitude, longitude: loc.longitude, current: "temperature_2m,weather_code", timezone: "auto" },
+        timeout: 10000
+      });
+
+      const current = wResp.data.current;
+      if (!current) throw new Error("天气数据不可用");
+      const temp = Math.round(current.temperature_2m);
+      const emoji = this.weatherCodeEmoji(current.weather_code);
+      const compact = `${emoji} ${temp}°C`;
+
+      settings.weather_compact = compact;
+      settings.weather_cache_ts = now;
+      await DataManager.saveUserSettings(settings);
+      return compact;
+    } catch {
+      settings.weather_compact = "";
+      settings.weather_cache_ts = now;
+      try { await DataManager.saveUserSettings(settings); } catch { /* ignore */ }
+      return "";
+    }
+  }
+
+  getTimezoneDisplay(timezone: string, format?: string): string {
+    try {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en', { timeZone: timezone, timeZoneName: 'longOffset' });
+      const parts = formatter.formatToParts(now);
+      const offsetPart = parts.find(part => part.type === 'timeZoneName');
+      
+      if (offsetPart && offsetPart.value) {
+        const match = offsetPart.value.match(/GMT([+-])(\d{2}):(\d{2})/);
+        if (match) {
+          const sign = match[1];
+          const hours = parseInt(match[2], 10);
+          const minutes = parseInt(match[3], 10);
+          
+          if (format) {
+            switch (format) {
+              case 'GMT': return minutes > 0 ? `GMT${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` : `GMT${sign}${hours}`;
+              case 'UTC': return minutes > 0 ? `UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` : `UTC${sign}${hours}`;
+              case 'SIMP': return this.getTimezoneAbbreviation(timezone, sign, hours, minutes);
+              case 'offset': return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+              default:
+                if (format.startsWith('custom:')) return format.substring(7);
+                return minutes > 0 ? `GMT${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` : `GMT${sign}${hours}`;
+            }
+          }
+          
+          return minutes > 0 ? `GMT${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` : `GMT${sign}${hours}`;
+        }
+      }
+      
+      const utcNow = new Date();
+      const localTime = new Date(utcNow.toLocaleString('en-US', { timeZone: timezone }));
+      const utcTime = new Date(utcNow.toLocaleString('en-US', { timeZone: 'UTC' }));
+      const offsetMs = localTime.getTime() - utcTime.getTime();
+      const totalMinutes = Math.round(offsetMs / (1000 * 60));
+      const offsetHours = Math.floor(Math.abs(totalMinutes) / 60);
+      const offsetMinutes = Math.abs(totalMinutes) % 60;
+      const sign = totalMinutes >= 0 ? '+' : '-';
+      
+      if (offsetMinutes > 0) {
+        return `GMT${sign}${offsetHours.toString().padStart(2, '0')}:${offsetMinutes.toString().padStart(2, '0')}`;
+      } else {
+        return `GMT${sign}${offsetHours}`;
+      }
+      
+    } catch (error) {
+      console.error('[AutoChangeName] 时区计算失败:', error);
+      return 'GMT+8';
+    }
+  }
+
+  private getEnabledComponents(settings: UserSettings): string[] {
+    const base: string[] = [];
+    
+    // 根据 mode 决定基础组件，但受 show_time 控制
+    if (settings.mode === "time") {
+      if (settings.show_time !== false) base.push("time");
+    } else if (settings.mode === "text") {
+      base.push("text");
+    } else if (settings.mode === "both") {
+      base.push("text");
+      if (settings.show_time !== false) base.push("time");
+    }
+
+    // 确保独立的开关状态同步到 enabledComponents 中，防止在后续流程被意外过滤掉
+    if (settings.show_clock_emoji && !base.includes("emoji")) base.push("emoji");
+    if (settings.show_timezone && !base.includes("timezone")) base.push("timezone");
+    if (settings.weather_enabled && !base.includes("weather")) base.push("weather");
+
+    return base;
+  }
+
+  async generateNewName(settings: UserSettings): Promise<{ firstName: string; lastName: string | null }> {
     const cleanFirstName = settings.original_first_name || "";
     const cleanLastName = settings.original_last_name;
     const currentTime = this.formatTime(settings.timezone);
@@ -826,7 +1239,7 @@ class AutoChangeNamePlugin extends Plugin {
       
       texts.push(...validLines);
       if (await DataManager.saveRandomTexts(texts)) {
-        let res = `✅ <b>文本添加结果</b>\n\n`;
+        let res = `✅ <b>文本添加结果</b><br><br>`;
         if (validLines.length > 0) res += `✅ 成功添加 ${validLines.length} 条\n`;
         if (duplicateLines.length > 0) res += `⚠️ 跳过 ${duplicateLines.length} 条重复\n`;
         if (invalidLines.length > 0) res += `❌ 跳过 ${invalidLines.length} 条超长\n`;
@@ -844,7 +1257,7 @@ class AutoChangeNamePlugin extends Plugin {
       } else await msg.edit({ text: html("❌ 无效的索引号") });
     } else if (action === "list") {
       if (texts.length === 0) await msg.edit({ text: html(`📝 <b>无随机文本</b><br>使用 <code>${mainPrefix}acn text add 文本</code> 添加`) });
-      else await msg.edit({ text: html(`📝 <b>随机文本列表</b><br><br>${texts.map((t, i) => `)${i + 1}. ${htmlEscape(t)}`).join("<br>")}<br><br>📊 总数量: ${texts.length}`) });
+      else await msg.edit({ text: html(`📝 <b>随机文本列表</b><br><br>${texts.map((t, i) => `)${i + 1}. ${htmlEscape(t)}`).join("\n")}\n\n📊 总数量: ${texts.length}`) });
     } else if (action === "clear") {
       if (await DataManager.saveRandomTexts([])) await msg.edit({ text: html("✅ 所有文本已清空") });
     } else {
