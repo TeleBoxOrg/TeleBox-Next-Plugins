@@ -64,7 +64,7 @@ class AnnualReportPlugin extends Plugin {
     });
   }
 
-  description = `📊 年度报告插件\n\n使用 ${getPrefixes()[0]}annualreport 生成您的Telegram年度报告`;
+  description = `📊 年度报告插件<br><br>使用 ${getPrefixes()[0]}annualreport 生成您的Telegram年度报告`;
 
   cmdHandlers = {
     annualreport: this.handleAnnualReport.bind(this)

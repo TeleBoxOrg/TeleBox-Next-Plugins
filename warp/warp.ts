@@ -497,7 +497,7 @@ const helpText = `⚡ <b>WARP 管理面板</b>
 // 插件实现
 class WarpPlugin extends Plugin {
 
-  description: string = `Cloudflare WARP 管理\n\n${helpText}`;
+  description: string = `Cloudflare WARP 管理<br><br>${helpText}`;
 
   cmdHandlers = {
     warp: async (msg: MessageContext) => {

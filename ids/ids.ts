@@ -41,7 +41,7 @@ const help_text = `🆔 <b>用户信息查询插件</b>
 
 class IdsPlugin extends Plugin {
 
-  description: string = `用户信息查询插件\n\n${help_text}`;
+  description: string = `用户信息查询插件<br><br>${help_text}`;
 
   // 高精度采样点 (ID, Timestamp) - 2026最新校准
   private readonly ID_DATA_POINTS: [number, number][] = [

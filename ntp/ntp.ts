@@ -235,7 +235,7 @@ async function setSystemTimeBestEffort(serverTimeMs: number): Promise<{
 }
 
 class NtpPlugin extends Plugin {
-  description: string = `\nNTP 对时\n\n${help_text}`;
+  description: string = `<br>NTP 对时<br><br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

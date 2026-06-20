@@ -111,7 +111,7 @@ const Renderers: Record<Mode, (t: string) => string> = {
 
 class MessageModePlugin extends Plugin {
   name = "mode";
-  description: string = `📌 消息模式插件\n\n${help_text}`;
+  description: string = `📌 消息模式插件<br><br>${help_text}`;
   private db: any;
 
   constructor() {
@@ -243,7 +243,7 @@ class MessageModePlugin extends Plugin {
 
       case "list":
         await msg.edit({
-          text: html`⚪ 白名单列表：<br><code>${list.map(htmlEscape).join("<br>") || "空"}</code>`,
+          text: html`⚪ 白名单列表：<br><code>${htmlEscape(list.join("\n")) || "空"}</code>`,
         });
         return;
 
@@ -277,7 +277,7 @@ class MessageModePlugin extends Plugin {
 
       case "list":
         await msg.edit({
-          text: html`⚫ 黑名单列表：<br><code>${list.map(htmlEscape).join("<br>") || "空"}</code>`,
+          text: html`⚫ 黑名单列表：<br><code>${htmlEscape(list.join("\n")) || "空"}</code>`,
         });
         return;
 

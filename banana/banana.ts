@@ -458,7 +458,7 @@ async function handleBananaCommand(msg: MessageContext): Promise<void> {
 
 class BananaPlugin extends Plugin {
 
-  description: string = `Nano-Banana 图像编辑插件\n\n${help_text}`;
+  description: string = `Nano-Banana 图像编辑插件<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     banana: handleBananaCommand,
   };

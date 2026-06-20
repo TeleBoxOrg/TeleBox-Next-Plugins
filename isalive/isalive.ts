@@ -330,7 +330,7 @@ async function findUserFromGroups(
 
 class IsAlivePlugin extends Plugin {
 
-  description: string = `\\nisalive\\n\\n${help_text}`;
+  description: string = `\<br>isalive\<br>\<br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

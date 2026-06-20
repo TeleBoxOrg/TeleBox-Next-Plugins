@@ -136,7 +136,7 @@ async function getApi() {
 }
 
 class GitManagerPlugin extends Plugin {
-  description: string = `通过Git API管理PR\n\n${help_text}`;
+  description: string = `通过Git API管理PR<br><br>${help_text}`;
 
   cmdHandlers = {
     [pluginName]: async (msg: MessageContext) => {

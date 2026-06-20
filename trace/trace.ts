@@ -75,7 +75,7 @@ const defaultState: TraceDB = {
 };
 
 class TracePlugin extends Plugin {
-  public description: string = `自动回应消息。\n\n${help_text}`;
+  public description: string = `自动回应消息。<br><br>${help_text}`;
   public cmdHandlers = { trace: this.handleTrace.bind(this) };
   public listenMessageHandler = this.handleMessage.bind(this);
 

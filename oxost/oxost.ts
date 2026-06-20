@@ -55,7 +55,7 @@ const help_text = `🗂️ <b>0x0.st 文件上传插件</b>\n\n<b>命令格式�
 
 class Ox0Plugin extends Plugin {
 
-  description: string = `文件上传到 0x0.st\n\n${help_text}`;
+  description: string = `文件上传到 0x0.st<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
     "0x0": async (msg: MessageContext) => {
       const lines = msg.text?.trim()?.split(/\r?\n/g) || [];

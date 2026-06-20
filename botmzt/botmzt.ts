@@ -294,7 +294,7 @@ class MztNewPlugin extends Plugin {
     }
     runtime.pendingDeleteTimers.clear();
   }
-  description: string = `妹子图片插件 - 从 ${BOT_USERNAME} 获取各类图片\n\n${help_text}`;
+  description: string = `妹子图片插件 - 从 ${BOT_USERNAME} 获取各类图片<br><br>${help_text}`;
 
   cmdHandlers = {
     // 主命令 - 显示帮助和设置

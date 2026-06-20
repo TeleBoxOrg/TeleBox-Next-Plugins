@@ -241,7 +241,7 @@ const help_text = `🚀 <b>智能汇率查询助手</b>
 
 class RatePlugin extends Plugin {
 
-  description: string = `加密货币汇率查询 & 数量换算\n\n${help_text}`;
+  description: string = `加密货币汇率查询 & 数量换算<br><br>${help_text}`;
 
   // 货币缓存 - 提高性能，避免重复API调用
   private currencyCache: Record<string, {id: string, symbol: string, name: string, type: 'crypto' | 'fiat'}> = {};

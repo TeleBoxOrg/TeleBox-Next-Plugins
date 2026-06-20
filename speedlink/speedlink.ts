@@ -985,7 +985,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
 // --- Plugin class ---
 class SpeedlinkPlugin extends Plugin {
 
-  description: string = `⚡️ 网络速度测试工具 (多服务器)\n\n${HELP_TEXT}`;
+  description: string = `⚡️ 网络速度测试工具 (多服务器)<br><br>${HELP_TEXT}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     speedlink: speedtest,
     sl: speedtest,

@@ -701,7 +701,7 @@ const helpResponse = `🛰️ <b>保送插件</b>\n\n${escapeHtml(helpText)}`;
 
 class BsPlugin extends Plugin {
 
-  description: string = `保送被回复的消息至指定目标\n\n${helpText}`;
+  description: string = `保送被回复的消息至指定目标<br><br>${helpText}`;
 
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     [pluginName]: async (msg: MessageContext) => {

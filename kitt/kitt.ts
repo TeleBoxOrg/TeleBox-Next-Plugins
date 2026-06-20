@@ -266,7 +266,7 @@ const help_text = [
 
 class KittPlugin extends Plugin {
 
-  description: string = `\nK.I.T.T <blockquote>As you wish, Michael.</blockquote>\n\n使用 JavaScript 的高级触发器: 匹配 -> 执行, 高度自定义, 逻辑自由\n\n${help_text}`;
+  description: string = `<br>K.I.T.T <blockquote>As you wish, Michael.</blockquote><br><br>使用 JavaScript 的高级触发器: 匹配 -> 执行, 高度自定义, 逻辑自由<br><br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

@@ -205,7 +205,7 @@ class MusicBotPlugin extends Plugin {
     botReady.clear();
   }
 
-  description: string = `\n多音源音乐搜索\n${help_text}`;
+  description: string = `<br>多音源音乐搜索<br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

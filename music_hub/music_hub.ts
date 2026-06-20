@@ -422,7 +422,7 @@ ${codeTag(`${commandName} br medium`)} - 设置码率，常用 low/medium/high
 ${codeTag(`${commandName} check`)} - 一键测活所有音乐源`;
 
 class MusicHubPlugin extends Plugin {
-  description: string = `Music Hub 多音源音乐搜索和下载\n\n${helpText}`;
+  description: string = `Music Hub 多音源音乐搜索和下载<br><br>${helpText}`;
   private db?: Awaited<ReturnType<typeof JSONFilePreset<MusicHubConfig>>>;
   private sessions = new Map<string, SearchSession>();
 

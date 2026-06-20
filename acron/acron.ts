@@ -547,7 +547,7 @@ ${mainPrefix}eat set</pre>
 
 class AcronPlugin extends Plugin {
 
-  description: string = `定时发送/转发/复制/置顶/取消置顶/删除消息/执行命令\n\n${help_text}`;
+  description: string = `定时发送/转发/复制/置顶/取消置顶/删除消息/执行命令<br><br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

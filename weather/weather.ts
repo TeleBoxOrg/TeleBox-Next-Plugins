@@ -421,7 +421,7 @@ class WeatherPlugin extends Plugin {
     const sunset = daily.sunset[0].split('T')[1].substring(0, 5);
     
     let result = `<b>📍 ${htmlEscape(locationName)}</b>\n\n`;
-    result += `${weatherInfo.icon} <b>${weatherInfo.description}</b>\n\n`;
+    result += `${weatherInfo.icon} <b>${weatherInfo.description}</b><br><br>`;
     result += `🌡️ <b>温度:</b> ${current.temperature_2m}°C\n`;
     result += `🤔 <b>体感:</b> ${current.apparent_temperature}°C\n`;
     result += `📊 <b>今日最高/最低:</b> ${daily.temperature_2m_max[0]}°C / ${daily.temperature_2m_min[0]}°C\n`;

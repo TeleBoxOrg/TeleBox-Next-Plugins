@@ -916,7 +916,7 @@ const help_text = `▎群消息总结
 
 class SummaryPlugin extends Plugin {
 
-  description: string = `群消息总结插件\n\n${help_text}`;
+  description: string = `群消息总结插件<br><br>${help_text}`;
 
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     sum: async (msg: MessageContext) => {

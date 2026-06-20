@@ -40,7 +40,7 @@ function scheduleTimer(fn: () => void, ms: number): ReturnType<typeof setTimeout
 
 class PaoluPlugin extends Plugin {
 
-  description: string = `群组一键跑路插件 - 删除消息并禁言所有成员\n\n${help_text}`;
+  description: string = `群组一键跑路插件 - 删除消息并禁言所有成员<br><br>${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
     paolu: this.handlePaolu.bind(this),

@@ -586,7 +586,7 @@ const da = async (msg: MessageContext) => {
 class DaPlugin extends Plugin {
 
   // 必须在 description 中引用 help_text
-  description: string = `群组消息批量删除插件\n\n${help_text}`;
+  description: string = `群组消息批量删除插件<br><br>${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     da,

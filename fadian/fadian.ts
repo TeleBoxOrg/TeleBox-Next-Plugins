@@ -137,7 +137,7 @@ const help_text = `🗒️ <b>发电语录插件</b>
 
 class FadianPlugin extends Plugin {
 
-  description: string = `从远程配置随机生成发电语录\n\n${help_text}`;
+  description: string = `从远程配置随机生成发电语录<br><br>${help_text}`;
 
   cmdHandlers = {
     fadian: async (msg: MessageContext) => {

@@ -1424,7 +1424,7 @@ const dme = async (msg: MessageContext) => {
 
 class DmePlugin extends Plugin {
 
-  description: string = `智能防撤回删除插件\n\n${help_text}`;
+  description: string = `智能防撤回删除插件<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     dme,
   };

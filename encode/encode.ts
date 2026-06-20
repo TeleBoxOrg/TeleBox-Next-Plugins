@@ -36,7 +36,7 @@ const help_text = `🔐 <b>编码解码工具集</b>
 
 class EncodePlugin extends Plugin {
 
-  description: string = `编码解码工具插件\n\n${help_text}`;
+  description: string = `编码解码工具插件<br><br>${help_text}`;
 
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     // 显示帮助信息

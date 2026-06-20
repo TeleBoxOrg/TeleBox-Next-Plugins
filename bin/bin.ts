@@ -135,7 +135,7 @@ async function fetchFromBincheck(bin: string): Promise<Partial<{ scheme: string;
 
 class BinPlugin extends Plugin {
 
-  description: string = `BIN 查询插件\n\n${help_text}`;
+  description: string = `BIN 查询插件<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     bin: async (msg: MessageContext) => {
       const line = msg.text?.trim()?.split(/\r?\n/g)?.[0] || "";

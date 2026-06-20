@@ -242,7 +242,7 @@ const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
 
 class JavDBPlugin extends Plugin {
 
-  description: string = `JavDB 番号查询\n\n${help_text}`;
+  description: string = `JavDB 番号查询<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {};
 
   constructor() {

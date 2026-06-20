@@ -375,7 +375,7 @@ async function relayParseResult(
 
 class ParseHubPlugin extends Plugin {
 
-  description: string = `\n${pluginName}\n\n${helpText}`;
+  description: string = `<br>${pluginName}<br><br>${helpText}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     parsehub: async (msg: MessageContext) => {
       const rawText = msg.text || "";

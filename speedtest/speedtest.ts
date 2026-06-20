@@ -1446,7 +1446,7 @@ const speedtest = async (msg: MessageContext) => {
 
 class SpeednextPlugin extends Plugin {
 
-  description: string = `⚡️ 网络速度测试工具 | SpeedTest by Ookla\n${help_txt}`;
+  description: string = `⚡️ 网络速度测试工具 | SpeedTest by Ookla<br>${help_txt}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     speedtest,
     st: speedtest,

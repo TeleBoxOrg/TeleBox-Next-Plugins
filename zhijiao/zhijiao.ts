@@ -142,7 +142,7 @@ function formatTossLine(index: number, toss?: TossResult): string {
 }
 
 class ZhijiaoPlugin extends Plugin {
-  description: string = `\n掷筊\n强随机 使用 笅杯卦辞廿七句\n${help_text}`;
+  description: string = `<br>掷筊<br>强随机 使用 笅杯卦辞廿七句<br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

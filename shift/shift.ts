@@ -1251,7 +1251,7 @@ class ShiftPlugin extends Plugin {
     lowdb = null;
   }
 
-  description: string = `智能转发助手 - 自动转发消息到指定目标\n\n${help_text}`;
+  description: string = `智能转发助手 - 自动转发消息到指定目标<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: any) => Promise<void>> = {
     shift: async (msg) => {
       const client = await getGlobalClient();

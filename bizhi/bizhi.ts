@@ -285,7 +285,7 @@ async function getWallpaper(lx: string): Promise<{imageBuffer: Buffer, filename:
 
 class BizhiPlugin extends Plugin {
 
-  description: string = `\n高品质壁纸\n\n${help_text}`;
+  description: string = `<br>高品质壁纸<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     bizhi: async (msg: MessageContext) => {
       const args = msg.text.split(/\s+/);

@@ -91,7 +91,7 @@ function getTxtFromMsg(msg: MessageContext | string, n: number): string {
 }
 class ManageAdminPlugin extends Plugin {
 
-  description: string = `\n管理管理员\n\n${help_text}`;
+  description: string = `<br>管理管理员<br><br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

@@ -546,7 +546,7 @@ class ZprPlugin extends Plugin {
     await ZprConfigManager.reinit();
   }
 
-    description = `随机纸片人插件\n\n${help_text}`;
+    description = `随机纸片人插件<br><br>${help_text}`;
     
     cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
         zpr: async (msg: MessageContext): Promise<void> => {

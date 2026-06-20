@@ -297,7 +297,7 @@ class SSHPlugin extends Plugin {
     await ConfigManager.get(CONFIG_KEYS.TARGET_CHAT);
   }
 
-  description: string = `SSH管理和服务器配置\n\n${help_text}`;
+  description: string = `SSH管理和服务器配置<br><br>${help_text}`;
 
   cmdHandlers = {
     ssh: async (msg: MessageContext) => {

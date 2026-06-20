@@ -33,7 +33,7 @@ const help_text = `
 `;
 
 class JuPaiPlugin extends Plugin {
-  description: string = `\n举牌小人\n\n${help_text}`;
+  description: string = `<br>举牌小人<br><br>${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     jupai: async (msg: MessageContext) => {

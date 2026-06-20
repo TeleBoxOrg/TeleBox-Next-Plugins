@@ -351,7 +351,7 @@ class TmpAdminPlugin extends Plugin {
     this.jobs.clear();
   }
 
-  description: string = `\n临时管理员\n\n${helpText}`;
+  description: string = `<br>临时管理员<br><br>${helpText}`;
 
   cmdHandlers: Record<
     string,

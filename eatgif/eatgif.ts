@@ -117,7 +117,7 @@ async function assetBufferFor(filePath: string): Promise<Buffer> {
 
 class EatGifPlugin extends Plugin {
 
-  description: string = `生成头像融合动图\n\n${help_text}`;
+  description: string = `生成头像融合动图<br><br>${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

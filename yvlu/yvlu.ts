@@ -498,7 +498,7 @@ async function downloadProfilePhotoForId(client: any, userId: number | string): 
 
 class YvluPlugin extends Plugin {
 
-  description: string = `\n生成文字语录贴纸\n\n${help_text}`;
+  description: string = `<br>生成文字语录贴纸<br><br>${help_text}`;
   private config: YvluConfig | null = null;
   private configPath: string = "";
 

@@ -184,7 +184,7 @@ const help_text = `🍗 <b>疯狂星期四插件</b>
 
 class Crazy4Plugin extends Plugin {
 
-  description: string = `疯狂星期四文案插件\n\n${help_text}`;
+  description: string = `疯狂星期四文案插件<br><br>${help_text}`;
   
   cmdHandlers = {
     crazy4: async (msg: MessageContext) => {

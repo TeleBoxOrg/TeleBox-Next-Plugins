@@ -66,7 +66,7 @@ const helpText = `⚙️ <b>OpenList 管理插件</b>
 
 class OpenListPlugin extends Plugin {
 
-  description: string = `\nOpenList 管理\n\n${helpText}`;
+  description: string = `<br>OpenList 管理<br><br>${helpText}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     openlist: async (msg: MessageContext) => {
       await this.handleCommand(msg);

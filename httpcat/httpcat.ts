@@ -19,7 +19,7 @@ const help_text = `
 
 class HttpCatPlugin extends Plugin {
 
-  description: string = `\nHTTP猫猫图片\n\n${help_text}`;
+  description: string = `<br>HTTP猫猫图片<br><br>${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     httpcat: async (msg: MessageContext) => {
       const args = msg.text?.split(/\s+/) || [];

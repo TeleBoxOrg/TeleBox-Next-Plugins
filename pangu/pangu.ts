@@ -196,7 +196,7 @@ class PanguPlugin extends Plugin {
   }
 
   name = "pangu";
-  description: string = `📝 Pangu 消息格式化插件\n\n${help_text}`;
+  description: string = `📝 Pangu 消息格式化插件<br><br>${help_text}`;
   private db: any;
   private prefixes: string[];
 

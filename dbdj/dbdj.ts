@@ -88,7 +88,7 @@ function htmlEscape(text: string): string {
 }
 
 class DbdjPlugin extends Plugin {
-  description: string = `点兵点将\n<code>${mainPrefix}dbdj 消息数 人数 文案</code> - 从最近的消息中随机抽取指定人数的用户`;
+  description: string = `点兵点将<br><code>${mainPrefix}dbdj 消息数 人数 文案</code> - 从最近的消息中随机抽取指定人数的用户`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
