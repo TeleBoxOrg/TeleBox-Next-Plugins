@@ -1,7 +1,8 @@
-# TeleBox_Plugins
+# TeleBox_M_Plugins
 
 ## 简介
-TeleBox_Plugins 是 [TeleBox](https://github.com/TeleBoxOrg/TeleBox_M) 项目的官方插件仓库，提供丰富的功能扩展。
+
+TeleBox_M_Plugins 是 [TeleBox_M](https://github.com/TeleBoxOrg/TeleBox_M) 项目的官方插件仓库（mtcute 版本），提供丰富的功能扩展。
 
 ## 安装方式
 ```bash
@@ -136,7 +137,7 @@ tpm i <插件名>
 - **开发语言**: TypeScript
 - **数据库**: Lowdb
 - **任务调度**: cron
-- **Telegram API**: mtcute
+- **Telegram API**: mtcute (native)
 - **图像处理**: Sharp
 - **其他依赖**: axios, lodash 等
   
