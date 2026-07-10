@@ -330,7 +330,38 @@ class UserResolver {
     target: string | number
   ): Promise<PartialEntity | null> {
     try {
-      return await (client as unknown as ClientInternals).resolvePeer(target) as PartialEntity | null;
+      // Resolve peer first to determine entity type and ID
+      const peer = await (client as unknown as ClientInternals).resolvePeer(target) as { _?: string; userId?: number; chatId?: number; channelId?: number; accessHash?: string | number };
+      if (!peer) return null;
+
+      const userId = peer.userId ? Number(peer.userId) : undefined;
+      const lookUpId = userId ?? (peer.chatId ? Number(peer.chatId) : peer.channelId ? Number(peer.channelId) : undefined);
+
+      // Fetch full entity info for display (firstName, username, title, etc.)
+      if (userId) {
+        try {
+          const users = await client.call({
+            _: 'users.getUsers',
+            id: [{ _: 'inputUser', userId, accessHash: peer.accessHash || 0n }],
+          }) as Array<Record<string, unknown>>;
+          if (Array.isArray(users) && users.length > 0 && (users[0] as { _?: string })._ !== 'userEmpty') {
+            return users[0] as PartialEntity;
+          }
+        } catch { /* fallback to peer */ }
+      }
+
+      if (lookUpId) {
+        try {
+          const chats = await client.call({
+            _: 'messages.getChats',
+            id: [lookUpId],
+          }) as { chats?: Array<Record<string, unknown>> };
+          if (chats?.chats?.[0]) return chats.chats[0] as PartialEntity;
+        } catch { /* fallback to peer */ }
+      }
+
+      // Fallback: return peer info (may lack display fields but has id)
+      return peer as unknown as PartialEntity;
     } catch (e: unknown) {
       logger.warn(`aban: safeGetEntity failed for target ${target}`, e);
       return null;
@@ -1668,7 +1699,7 @@ class AbanPlugin extends Plugin {
       const status = await MessageManager.smartEdit(msg, "🔄 刷新中...", 0);
       
       try {
-        GroupManager.clearCache();
+        await GroupManager.clearCache();
         const groups = await GroupManager.getManagedGroups(client);
         await MessageManager.smartEdit(status, `✅ 已刷新 ${groups.length}个群组`);
       } catch (_e: unknown) {
