@@ -316,7 +316,11 @@ class SendTaskManager {
     if (task.pause) return;
 
     const taskName = `sendat_${task.task_id}`;
-    
+    // Guard: delete any zombie cron from a previous generation before re-registering
+    if (cronManager.has(taskName)) {
+      cronManager.del(taskName);
+    }
+
     if (task.interval) {
       if (task.cron) {
         // 定时任务（每天固定时间）
@@ -377,7 +381,7 @@ class SendTaskManager {
       const client = await getGlobalClient();
       if (!client) return;
 
-      await client.sendText(task.cid, "");
+      await client.sendText(task.cid, html(task.msg));
 
       task.current_count += 1;
       
@@ -433,6 +437,16 @@ seconds, minutes, hours, date, times`;
   }
 
   get description() { return this.helpText; }
+
+  cleanup(): void {
+    // Remove all cron tasks registered by this plugin to prevent zombies on reload
+    for (const task of this.taskManager.getAllTasks()) {
+      const taskName = `sendat_${task.task_id}`;
+      if (cronManager.has(taskName)) {
+        cronManager.del(taskName);
+      }
+    }
+  }
 
   cmdHandlers = {
     sendat: async (msg: MessageContext) => {
