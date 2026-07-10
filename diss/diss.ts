@@ -16,6 +16,11 @@ class DissPlugin extends Plugin {
 
 使用 ${mainPrefix}diss 触发`;
 
+  // 生命周期：插件卸载时清理（防止 reload 泄漏）
+  cleanup(): void {
+    // 无持久状态需清理，占位以符合生命周期规范
+  }
+
   // 命令处理器
   cmdHandlers = {
     diss: this.handleDiss.bind(this)
