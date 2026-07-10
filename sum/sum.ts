@@ -426,8 +426,8 @@ function extractUrlsFromEntities(message: any): string[] {
         urls.push(entity.url);
       }
       // Url 类型：消息中的纯文本 URL
-      if (entity.className === 'MessageEntityUrl' && message.message) {
-        const url = message.message.substring(entity.offset, entity.offset + entity.length);
+      if (entity.className === 'MessageEntityUrl' && message.text) {
+        const url = message.text.substring(entity.offset, entity.offset + entity.length);
         urls.push(url);
       }
     }

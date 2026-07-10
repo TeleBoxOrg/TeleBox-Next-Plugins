@@ -712,7 +712,7 @@ class BsPlugin extends Plugin {
         return;
       }
 
-      const text = msg.message || msg.text || "";
+      const text = msg.text || "";
       const lines = text.trim().split(/\r?\n/);
       const head = lines[0] || "";
       const parts = head.trim().split(/\s+/).filter(Boolean);

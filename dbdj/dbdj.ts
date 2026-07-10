@@ -5,6 +5,7 @@ import { getGlobalClient } from "@utils/globalClient";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
+import { html } from "@mtcute/node";
 import type { ClientInternals } from "@utils/clientInternals";
 
 const prefixes = getPrefixes();
@@ -88,8 +89,7 @@ class DbdjPlugin extends Plugin {
       const startAt = Date.now();
       const replyAndDeleteMsg = async (message: string) => {
         const replyTarget = trigger || msg;
-        await replyTarget.reply(message, {
-          parseMode: "html",
+        await replyTarget.replyText(html(message), {
           linkPreview: false,
         });
         try {
@@ -117,8 +117,7 @@ class DbdjPlugin extends Plugin {
         }
 
         await msg.edit({
-          text: `点兵点将...`,
-          parseMode: "html",
+          text: html(`点兵点将...`),
         });
 
         const client = msg.client! as unknown as import("@mtcute/node").TelegramClient;

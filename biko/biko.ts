@@ -383,9 +383,10 @@ async function matchesManualSelector(
     return true;
   }
 
-  if (typeof message?.getSender === "function") {
+  // mtcute: Message 已解析 `.sender`（Peer），无异步 getSender()
+  if (message?.sender) {
     try {
-      const sender = await message.getSender();
+      const sender = message.sender;
       const senderUsername = normalizeUsername(
         String(getEntityUsername(sender) || ""),
       );

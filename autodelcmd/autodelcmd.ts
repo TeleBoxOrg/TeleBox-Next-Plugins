@@ -1076,20 +1076,12 @@ class AutoDeletePlugin extends Plugin {
         cachedUserId = me.id.toString();
       }
       
-      // 检查消息的聊天对象
-      const peerId = msg.peerId;
-      const chatId = msg.chatId;
+      // 检查消息的聊天对象：mtcute 下用 msg.chat.id（无 teleproto 的 peerId/chatId 字段）
+      const chatId = msg.chat?.id;
       
       // Saved Messages 的特征：chatId 等于当前用户的 ID
       if (chatId && chatId.toString() === cachedUserId) {
         return true;
-      }
-      
-      // 也可以通过 peerId 检查
-      if (peerId && typeof peerId === 'object' && 'userId' in peerId) {
-        if (peerId.userId.toString() === cachedUserId) {
-          return true;
-        }
       }
       
     } catch (error: unknown) {
@@ -1119,7 +1111,7 @@ class AutoDeletePlugin extends Plugin {
       if (!shouldProcess) return;
       
       // 检查消息是否以命令前缀开头
-      const messageText = msg.message?.trim() || "";
+      const messageText = msg.text?.trim() || "";
       if (!messageText) return;
 
       // 检查消息是否以任何一个配置的前缀开头

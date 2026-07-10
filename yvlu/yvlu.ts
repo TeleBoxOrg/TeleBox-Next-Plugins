@@ -615,29 +615,27 @@ class YvluPlugin extends Plugin {
           let previousUserIdentifier: string | null = null;
 
           for (const [i, message] of messages.entries()) {
-            // 获取发送者信息
-            let sender: EntityLike | null = await message.getSender() as EntityLike | null;
+            // 获取发送者信息：mtcute 的 Message 已解析 `.sender`（Peer），无异步 getSender()
+            let sender: EntityLike | null = (message.sender as EntityLike) || null;
 
-            // 如果无法获取发送者（可能是以频道身份发言），尝试从 peerId 获取
-            if (!sender) {
+            // 如果无法获取发送者（可能是以频道身份发言），尝试从 forward 信息获取
+            if (!sender && message.forward) {
               try {
-                const peerId =
-                  (message as MessageLike).peerId || (message as MessageLike).fromId;
-                if (peerId) {
-                  sender = await client.resolvePeer(peerId);
+                const fwdSender = message.forward.sender;
+                if (fwdSender && typeof (fwdSender as { id?: unknown }).id !== "undefined") {
+                  sender = fwdSender as unknown as EntityLike;
                 }
               } catch (e: unknown) {
-                logger.warn("从 peerId 获取发送者失败", e);
+                logger.warn("从转发获取发送者失败", e);
               }
             }
 
-            if (message.fwdFrom) {
-              let forwardedSender =
-                message.forward?.sender || message.forward?.chat;
+            if (message.forward) {
+              let forwardedSender = message.forward.sender || null;
 
               if (!forwardedSender) {
                 try {
-                  forwardedSender = await message.forward?.getSender();
+                  forwardedSender = message.forward?.sender || null;
                 } catch (error: unknown) {
                   logger.warn("获取转发发送者失败", error);
                 }
@@ -645,7 +643,7 @@ class YvluPlugin extends Plugin {
 
               if (!forwardedSender) {
                 forwardedSender = await resolveForwardSenderFromHeader(
-                  message.fwdFrom,
+                  message.forward?.raw ?? null,
                   client,
                 );
               }
@@ -714,10 +712,10 @@ class YvluPlugin extends Plugin {
             }
 
             if (i === 0) {
-              let replyTo = (trigger || msg)?.replyTo;
+              const replyTo = (trigger || msg)?.replyTo;
               if (replyTo?.quoteText) {
-                message.text = message.message = replyTo.quoteText;
-                message.entities = replyTo.quoteEntities;
+                message.text = replyTo.quoteText;
+                message.entities = replyTo.quoteEntities || [];
               }
             }
 
@@ -741,7 +739,7 @@ class YvluPlugin extends Plugin {
                   try {
                     const repliedMsg = await safeGetReplyMessage(message);
                     if (repliedMsg) {
-                      const repliedSender = await repliedMsg.getSender();
+                      const repliedSender = repliedMsg.sender as EntityLike | null;
                       if (repliedSender) {
                         replyChatId = Number(repliedSender.id);
                         const repliedSenderLike = repliedSender as EntityLike;
@@ -777,7 +775,7 @@ class YvluPlugin extends Plugin {
                   try {
                     const repliedMsg = await safeGetReplyMessage(message);
                     if (repliedMsg) {
-                      const repliedSender = await repliedMsg.getSender();
+                      const repliedSender = repliedMsg.sender as EntityLike | null;
                       let replyName = "unknown";
                       let replyChatId: number | undefined;
                       if (repliedSender) {
@@ -857,10 +855,10 @@ class YvluPlugin extends Plugin {
                       isTgsSticker)) || // TGS 动态贴纸
                   isGifOrMp4; // GIF/MP4
 
-                const buffer = await (message as unknown as { downloadMedia: (opts?: Record<string, unknown>) => Promise<unknown> }).downloadMedia({
-                  // 动态内容不使用缩略图，下载原始文件
-                  ...(isAnimatedContent ? {} : { thumb: 1 }),
-                });
+                const buffer = await client.downloadAsBuffer(
+                  message.media as Parameters<typeof client.downloadAsBuffer>[0],
+                  isAnimatedContent ? {} : { thumb: 1 },
+                ).then((b) => Buffer.from(b));
                 if (Buffer.isBuffer(buffer)) {
                   let finalBuffer = buffer;
                   let finalMime = mimeType;
@@ -934,7 +932,7 @@ class YvluPlugin extends Plugin {
                   ? emojiStatus || undefined
                   : undefined,
               },
-              text: message.text || message.message || "",
+              text: message.text || "",
               entities: entities,
               avatar: shouldShowAvatar,
               media,
@@ -1294,7 +1292,9 @@ ${codeTag(this.configPath)}
       if (isPhoto) {
         try {
           // 下载图片
-          const buffer = await replied.downloadMedia();
+          const buffer = await client.downloadAsBuffer(
+            replied.media as Parameters<typeof client.downloadAsBuffer>[0],
+          ).then((b) => Buffer.from(b));
           if (!Buffer.isBuffer(buffer)) {
             await msg.edit({ text: "❌ 下载图片失败" });
             return;
@@ -1364,7 +1364,9 @@ ${codeTag(this.configPath)}
         }
       } else if (isPhoto) {
         // 下载图片
-        const buffer = await replied.downloadMedia();
+        const buffer = await client.downloadAsBuffer(
+          replied.media as Parameters<typeof client.downloadAsBuffer>[0],
+        ).then((b) => Buffer.from(b));
         if (!Buffer.isBuffer(buffer)) {
           await msg.edit({ text: "❌ 下载图片失败" });
           return;

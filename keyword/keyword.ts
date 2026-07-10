@@ -98,15 +98,10 @@ class KeywordTask {
   }
 
   checkNeedReply(message: any): boolean {
-    const media = message.media as Record<string, unknown> | undefined;
-    const text =
-      message.message ||
-      (media && "caption" in media
-        ? String((media as { caption?: string }).caption || "")
-        : "");
+    const text = getMessageText(message);
     if (!text) return false;
 
-    if (this.ignore_forward && message.fwdFrom) {
+    if (this.ignore_forward && message.forward) {
       return false;
     }
 
@@ -170,15 +165,14 @@ class KeywordTask {
       let sentMsg: any = null;
       try {
         const sendOptions: any = {
-          message: text,
-          parseMode: "html",
+          text: html(text),
         };
 
         if (this.reply && message.id) {
           sendOptions.replyTo = message.id;
         }
 
-        sentMsg = await (client as unknown as ClientInternals).sendMessage(message.peerId, sendOptions);
+        sentMsg = await (client as unknown as ClientInternals).sendMessage(message.chat.id, sendOptions);
 
         const cmd = await getCommandFromMessage(text);
 
@@ -194,7 +188,7 @@ class KeywordTask {
             const sourceTimer = setTimeout(async () => {
               pendingDeleteTimers.delete(sourceTimer);
               try {
-                await client.deleteMessagesById(message.peerId as unknown as import("@mtcute/core").InputPeerLike, [message.id!], {
+                await client.deleteMessagesById(message.chat.id, [message.id!], {
                   revoke: true,
                 });
               } catch (error: unknown) {
@@ -203,7 +197,7 @@ class KeywordTask {
             }, this.source_delay_delete * 1000);
             pendingDeleteTimers.add(sourceTimer);
           } else {
-            await client.deleteMessagesById(message.peerId as unknown as import("@mtcute/core").InputPeerLike, [message.id!], {
+            await client.deleteMessagesById(message.chat.id, [message.id!], {
               revoke: true,
             });
           }
@@ -216,7 +210,7 @@ class KeywordTask {
         const replyTimer = setTimeout(async () => {
           pendingDeleteTimers.delete(replyTimer);
           try {
-            await client.deleteMessagesById(message.peerId as unknown as import("@mtcute/core").InputPeerLike, [sentMsg.id!], {
+            await client.deleteMessagesById(message.chat.id, [sentMsg.id!], {
               revoke: true,
             });
           } catch (error: unknown) {
@@ -563,8 +557,6 @@ function getChatId(msg: any): number {
   try {
     if (msg.chat?.id) {
       return Number(msg.chat.id);
-    } else if (msg.peerId) {
-      return Number(msg.peerId.toString());
     } else if (msg.chatId) {
       return Number(msg.chatId.toString());
     } else {
@@ -594,9 +586,21 @@ function parseTaskIds(idsStr: string): number[] {
   return result;
 }
 
+// 获取消息文本：mtcute 下 MessageContext/Message 用 `text`（无 teleproto 的 `message` 字段）
+function getMessageText(m: any): string {
+  if (!m) return "";
+  const direct = m.text;
+  if (direct) return String(direct);
+  const media = m.media as Record<string, unknown> | undefined;
+  if (media && "caption" in media) {
+    return String((media as { caption?: string }).caption || "");
+  }
+  return "";
+}
+
 const keyword = async (msg: any) => {
   try {
-    const messageText = msg.message || "";
+    const messageText = (msg.text || msg.message || "").toString();
     const args = messageText.split(" ").slice(1) || [];
     const spaceIndex = messageText.indexOf(" ");
     const fullArgs =
@@ -700,8 +704,7 @@ reply delete ban3600</code>
 如需更多帮助，请参考 TeleBox 官方文档或联系管理员。`;
 
       await msg.edit({
-        text: helpText,
-        parseMode: "html",
+        text: html(helpText),
       });
       return;
     }
@@ -711,8 +714,7 @@ reply delete ban3600</code>
         const chatId = getChatId(msg);
         const taskList = keywordTasks.printAllTasks(false, chatId);
         await msg.edit({
-          text: `<b>当前聊天的关键词任务：</b>\n\n${taskList}`,
-          parseMode: "html",
+        text: html(`<b>当前聊天的关键词任务：</b>\n\n${taskList}`),
         });
         return;
       } else if (args[0] === "alias") {
@@ -720,8 +722,7 @@ reply delete ban3600</code>
         const aliasId = keywordAlias.get(chatId);
         if (aliasId) {
           await msg.edit({
-            text: `🔗 当前群组继承自：<code>${aliasId}</code>`,
-            parseMode: "html",
+            text: html(`🔗 当前群组继承自：<code>${aliasId}</code>`),
           });
         } else {
           await msg.edit({
@@ -739,21 +740,18 @@ reply delete ban3600</code>
           const result = keywordTasks.removeByIds(idList);
           keywordTasks.saveToDB();
           await msg.edit({
-            text: `✅ 已删除任务成功 <code>${result.success}</code> 个，失败 <code>${result.failed}</code> 个。`,
-            parseMode: "html",
+            text: html(`✅ 已删除任务成功 <code>${result.success}</code> 个，失败 <code>${result.failed}</code> 个。`),
           });
         } catch (error: unknown) {
           await msg.edit({
-            text: `❌ <b>参数错误:</b> ${htmlEscape(getErrorMessage(error))}`,
-            parseMode: "html",
+            text: html(`❌ <b>参数错误:</b> ${htmlEscape(getErrorMessage(error))}`),
           });
         }
         return;
       } else if (args[0] === "list" && args[1] === "all") {
         const taskList = keywordTasks.printAllTasks(true);
         await msg.edit({
-          text: `<b>所有关键词任务：</b>\n\n${taskList}`,
-          parseMode: "html",
+          text: html(`<b>所有关键词任务：</b>\n\n${taskList}`),
         });
         return;
       } else if (args[0] === "alias") {
@@ -774,15 +772,13 @@ reply delete ban3600</code>
             const cid = parseInt(args[1]);
             keywordAlias.add(chatId, cid);
             await msg.edit({
-              text: `✅ 已添加继承：<code>${cid}</code>`,
-              parseMode: "html",
+              text: html(`✅ 已添加继承：<code>${cid}</code>`),
             });
           } catch (error: unknown) {
             await msg.edit({
-              text: `❌ <b>参数错误:</b> ${htmlEscape(
-                getErrorMessage(error) || "请输入正确的参数"
-              )}`,
-              parseMode: "html",
+            text: `❌ <b>参数错误:</b> ${htmlEscape(
+            getErrorMessage(error) || "请输入正确的参数"
+            )}`,
             });
           }
         }
@@ -794,8 +790,6 @@ reply delete ban3600</code>
     try {
       if (msg.chat?.id) {
         chatId = Number(msg.chat.id);
-      } else if (msg.peerId) {
-        chatId = Number(msg.peerId.toString());
       } else if (msg.chatId) {
         chatId = Number(msg.chatId.toString());
       } else {
@@ -833,13 +827,11 @@ reply delete ban3600</code>
       keywordTasks.add(task);
       keywordTasks.saveToDB();
       await msg.edit({
-        text: `✅ 已添加关键词任务，ID 为 <code>${task.task_id}</code>。`,
-        parseMode: "html",
+        text: html(`✅ 已添加关键词任务，ID 为 <code>${task.task_id}</code>。`),
       });
     } catch (error: unknown) {
       await msg.edit({
-        text: `❌ <b>参数错误:</b> ${htmlEscape(getErrorMessage(error))}`,
-        parseMode: "html",
+        text: html(`❌ <b>参数错误:</b> ${htmlEscape(getErrorMessage(error))}`),
       });
     }
   } catch (error: unknown) {
@@ -874,12 +866,7 @@ class KeywordPlugin extends Plugin {
   listenMessageHandler?: (msg: any) => Promise<void> =
     async (message: any) => {
       try {
-        const media = message.media as Record<string, unknown> | undefined;
-        const text =
-          message.message ||
-          (media && "caption" in media
-            ? String((media as { caption?: string }).caption || "")
-            : "");
+        const text = getMessageText(message);
         if (!text) {
           return;
         }
@@ -901,12 +888,7 @@ export async function processKeywordMessage(
   message: any
 ): Promise<void> {
   try {
-    const media = message.media as Record<string, unknown> | undefined;
-    const text =
-      message.message ||
-      (media && "caption" in media
-        ? String((media as { caption?: string }).caption || "")
-        : "");
+    const text = getMessageText(message);
     if (!text) {
       return;
     }

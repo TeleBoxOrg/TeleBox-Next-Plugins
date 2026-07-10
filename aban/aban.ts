@@ -22,6 +22,16 @@ import type { MtcuteInputPeer, MtcuteInputChannel, MtcuteInputUser } from "@util
 import { htmlEscape } from "@utils/htmlEscape";
 
 /**
+ * 从消息对象中取出所属聊天 ID。mtcute 的 MessageContext/Message 用 `.chat.id`
+ * 表示当前聊天，没有 teleproto 的 `.peerId` 字段，故统一经此函数解析。
+ */
+function chatIdOf(msg: any): number | undefined {
+  const chat = msg?.chat;
+  if (chat && typeof chat.id !== "undefined") return Number(chat.id);
+  return undefined;
+}
+
+/**
  * Chat identifier type used across PermissionManager and BanManager.
  * Can be an InputPeer (from resolvePeer), a PeerChat/Chat-like object,
  * or a ManagedGroup-like object with kind/className.
@@ -297,9 +307,9 @@ class UserResolver {
     return { user: null, uid: null, source: "unknown", resolutionError: "INVALID_TARGET", chatType: this.getChatType(message) };
   }
 
-  private static async getReplySender(reply: { getSender?: () => Promise<unknown>; sender?: unknown }): Promise<ResolvedUser | null> {
+  private static async getReplySender(reply: { sender?: unknown }): Promise<ResolvedUser | null> {
     try {
-      const sender = await reply.getSender?.();
+      const sender = (reply as { sender?: unknown }).sender;
       if (sender && typeof sender === "object") {
         const raw = sender as { _?: string; firstName?: string; first_name?: string; lastName?: string; last_name?: string; username?: string; title?: string; id?: number | string };
         return {
@@ -386,7 +396,7 @@ class UserResolver {
     userId: number,
     knownEntity?: PartialEntity
   ): Promise<tl.TypeInputPeer | undefined> {
-    const chat = (message as { peerId?: unknown }).peerId;
+    const chat = chatIdOf(message);
     if (!chat) {
       return undefined;
     }
@@ -493,7 +503,7 @@ class MessageManager {
         if (lifecycle) {
           lifecycle.setTimeout(async () => {
             try {
-              const peerId = (message as unknown as { peerId?: number }).peerId;
+              const peerId = chatIdOf(message);
               await client.deleteMessagesById(peerId as unknown as number, [message.id], {
                 revoke: true,
               });
@@ -1240,7 +1250,7 @@ class CommandHandlers {
       // 权限检查
       const hasPermission = await PermissionManager.checkAdminPermission(
         client,
-        message.peerId
+        chatIdOf(message)
       );
       
       if (!hasPermission) {
@@ -1249,7 +1259,7 @@ class CommandHandlers {
       }
 
       // 解析参数
-      const args = message.message?.split(" ").slice(1) || [];
+      const args = chatIdOf(message) ? message.text?.split(" ").slice(1) || [] : [];
       const { user, uid, participant, resolutionError, chatType } = await UserResolver.resolveTarget(client, message, args);
 
       if (!uid) {
@@ -1267,7 +1277,7 @@ class CommandHandlers {
       }
 
       // 检查目标是否为管理员
-      const isAdmin = await PermissionManager.isTargetAdmin(client, message.peerId, uid);
+      const isAdmin = await PermissionManager.isTargetAdmin(client, chatIdOf(message), uid);
       if (isAdmin) {
         const hasConfirm = args.includes('true');
         if (!hasConfirm) {
@@ -1288,34 +1298,34 @@ class CommandHandlers {
 
       switch (action) {
         case 'kick':
-          success = await BanManager.kickUser(client, message.peerId, uid, participant);
+          success = await BanManager.kickUser(client, chatIdOf(message), uid, participant);
           resultText = `✅ 已踢出 ${htmlEscape(display)}`;
           break;
         case 'ban':
           // 先删除消息，再封禁
-          const deleteSuccess = await BanManager.deleteHistoryInCurrentChat(client, message.peerId, uid, participant);
-          success = await BanManager.banUser(client, message.peerId, uid, 0, participant);
+          const deleteSuccess = await BanManager.deleteHistoryInCurrentChat(client, chatIdOf(message), uid, participant);
+          success = await BanManager.banUser(client, chatIdOf(message), uid, 0, participant);
           const deleteText = deleteSuccess ? '(已清理消息)' : '';
           resultText = chatType === 'chat'
             ? `✅ 已移出 ${htmlEscape(display)} ${deleteText}`
             : `✅ 已封禁 ${htmlEscape(display)} ${deleteText}`;
           break;
         case 'unban':
-          success = await BanManager.unbanUser(client, message.peerId, uid, participant);
+          success = await BanManager.unbanUser(client, chatIdOf(message), uid, participant);
           resultText = chatType === 'chat'
             ? `✅ 已处理 ${htmlEscape(display)}`
             : `✅ 已解封 ${htmlEscape(display)}`;
           break;
         case 'mute':
           const duration = parseTimeString(args[1]);
-          success = await BanManager.muteUser(client, message.peerId, uid, duration, participant);
+          success = await BanManager.muteUser(client, chatIdOf(message), uid, duration, participant);
           const durationText = duration === 0 ? '永久' : this.formatDuration(duration);
           resultText = chatType === 'chat'
             ? `✅ 已处理 ${htmlEscape(display)} ${durationText}`
             : `✅ 已禁言 ${htmlEscape(display)} ${durationText}`;
           break;
         case 'unmute':
-          success = await BanManager.unbanUser(client, message.peerId, uid, participant);
+          success = await BanManager.unbanUser(client, chatIdOf(message), uid, participant);
           resultText = chatType === 'chat'
             ? `✅ 已处理 ${htmlEscape(display)}`
             : `✅ 已解禁言 ${htmlEscape(display)}`;
@@ -1353,7 +1363,7 @@ class CommandHandlers {
     message: any
   ): Promise<void> {
     try {
-      const args = message.message?.split(" ").slice(1) || [];
+      const args = chatIdOf(message) ? message.text?.split(" ").slice(1) || [] : [];
       const { user, uid, participant, resolutionError } = await UserResolver.resolveTarget(client, message, args);
 
       if (!uid) {
@@ -1419,7 +1429,7 @@ class CommandHandlers {
         
         // 并发执行删除和封禁
         const [deletedInCurrent, banResult] = await Promise.allSettled([
-          BanManager.deleteHistoryInCurrentChat(client, message.peerId, uid, participant),
+          BanManager.deleteHistoryInCurrentChat(client, chatIdOf(message), uid, participant),
           BanManager.batchBanUser(client, groups, uid, participant, args.slice(1).join(" ") || "违规")
         ]);
 
@@ -1502,7 +1512,7 @@ class CommandHandlers {
     message: any
   ): Promise<void> {
     try {
-      const args = message.message?.split(" ").slice(1) || [];
+      const args = chatIdOf(message) ? message.text?.split(" ").slice(1) || [] : [];
       const { user, uid, participant, resolutionError } = await UserResolver.resolveTarget(client, message, args);
 
       if (!uid) {
