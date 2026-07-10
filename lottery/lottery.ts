@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { getEntityWithHash } from "@utils/entityHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
-import type { TelegramClient } from "@mtcute/node";
+import type { TelegramClient, User } from "@mtcute/node";
 import { html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
@@ -875,31 +875,22 @@ async function performLotteryDraw(client: TelegramClient, lottery: LotteryConfig
 
 
 // Enhanced message listener for lottery participation
-async function handleEnhancedLotteryJoin(msg: MessageContext & { peerId?: number; chatId?: number; getSender: () => Promise<any>; reply: (params: any) => Promise<any> }): Promise<void> {
+async function handleEnhancedLotteryJoin(msg: MessageContext): Promise<void> {
   if (!msg.text || !msg.sender?.id || !msg.client) return;
-  
-  let chatId: string;
-  try {
-    if (msg.chat?.id) {
-      chatId = String(msg.chat.id);
-    } else if (msg.peerId) {
-      chatId = String(msg.peerId);
-    } else if (msg.chatId) {
-      chatId = String(msg.chatId);
-    } else {
-      return;
-    }
-  } catch (_e: unknown) {
-    return;
-  }
+
+  // mtcute MessageContext exposes the chat under `msg.chat.id`; teleproto's
+  // `msg.peerId` / `msg.chatId` do not exist here.
+  const chatId = String(msg.chat?.id);
+  if (!chatId) return;
 
   const activeLottery = getActiveLottery(chatId);
   if (!activeLottery || msg.text.trim() !== activeLottery.keyword) {
     return;
   }
 
-  const sender = await msg.getSender();
-  if (!sender || sender.bot) {
+  // mtcute: use getCompleteSender() (teleproto's msg.getSender() is not available)
+  const sender = await msg.getCompleteSender();
+  if (!sender || (sender as User).isBot) {
     return;
   }
 
@@ -909,9 +900,7 @@ async function handleEnhancedLotteryJoin(msg: MessageContext & { peerId?: number
   
   if (alreadyParticipated) {
     try {
-      const replyMsg = await msg.reply({
-        message: `⚠️ <b>重复参与</b>\n\n您已参加过抽奖，请勿重复参加`
-      });
+      const replyMsg = await msg.replyText(html(`⚠️ <b>重复参与</b>\n\n您已参加过抽奖，请勿重复参加`));
       
       // Delete both messages after delay (generation-safe)
       const gen1 = getCurrentGeneration();
@@ -966,9 +955,7 @@ async function handleEnhancedLotteryJoin(msg: MessageContext & { peerId?: number
     `🍀 <b>祝你好运!</b>`;
 
   try {
-    const replyMsg = await msg.reply({
-      message: joinText
-    });
+    const replyMsg = await msg.replyText(html(joinText));
     
     // Delete messages after delay (generation-safe)
     const gen2 = getCurrentGeneration();
