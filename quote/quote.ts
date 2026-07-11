@@ -39,7 +39,7 @@ const TG_STICKER_MAX_FRAMES = 100;
 const TG_STICKER_MAX_BYTES = 512 * 1024;
 const WEBM_CRF_STEPS = [38, 44, 50, 56];
 
-const QUOTE_PLUGIN_VERSION = "1.02";
+const QUOTE_PLUGIN_VERSION = "1.03";
 const QUOTE_BASE_URL = "https://raw.githubusercontent.com/TeleBoxOrg/TeleBox_Plugins/main/quote";
 const QUOTE_ASSETS_BASE_URL = "https://raw.githubusercontent.com/LyoSU/quote-api/master/assets";
 const QUOTE_VENDOR_DIR = path.join(quotePluginDir(), "quote", "vendor");
@@ -457,7 +457,12 @@ function emojiStatusIdFromEntity(entity: unknown): string | undefined {
   if (!entity || typeof entity !== "object") return undefined;
   const obj = entity as Record<string, unknown>;
   const status = obj.emojiStatus ?? obj.emoji_status;
-  if (!status || typeof status !== "object") return undefined;
+  if (!status) return undefined;
+  if (typeof status !== "object") {
+    // Primitive value (bigint, number, string) — treat as direct document ID
+    const id = (status as any)?.value ?? status;
+    return id ? String(id) : undefined;
+  }
   const statusObj = status as Record<string, unknown>;
   const documentId = statusObj.documentId ?? statusObj.document_id ?? statusObj.customEmojiId ?? statusObj.custom_emoji_id ?? statusObj.id;
   if (!documentId) return undefined;
@@ -1265,6 +1270,27 @@ async function forwardPreview(msg: MessageContext): Promise<any | undefined> {
   };
 }
 
+async function senderRankInChat(client: any | null, msg: MessageContext, entity: any): Promise<string | undefined> {
+  if (!entity?.accessHash) return undefined;
+  const effectiveClient = client || await getGlobalClient().catch(() => null);
+  if (!effectiveClient) return undefined;
+  try {
+    const inputUser = { _: "inputUser", userId: entity.id, accessHash: entity.accessHash };
+    const result = await withTimeout(
+      effectiveClient.call({
+        _: "channels.getParticipant",
+        channel: msg.chat,
+        participant: inputUser,
+      }),
+      QUOTE_RPC_TIMEOUT_MS,
+      "senderRank.channels.getParticipant",
+    );
+    return result?.participant?.rank?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function toQuoteMessage(msg: MessageContext, args: QuoteArgs): Promise<any> {
   const entity = await senderEntity(msg);
   const fwd = await forwardedSource(msg);
@@ -1313,7 +1339,7 @@ async function toQuoteMessage(msg: MessageContext, args: QuoteArgs): Promise<any
     emoji_status: args.hidden || fwd?.anonymous ? undefined : emojiStatusPayload(effectiveEntity, emojiBuffer),
     date: messageDate(msg),
     via_bot: msg.viaBot?.id,
-    senderTag: undefined,
+    senderTag: fwd ? undefined : await senderRankInChat(null, msg, entity),
   };
 }
 
