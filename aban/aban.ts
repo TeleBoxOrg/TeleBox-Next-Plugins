@@ -25,10 +25,10 @@ import { htmlEscape } from "@utils/htmlEscape";
  * 从消息对象中取出所属聊天 ID。mtcute 的 MessageContext/Message 用 `.chat.id`
  * 表示当前聊天，没有 teleproto 的 `.peerId` 字段，故统一经此函数解析。
  */
-function chatIdOf(msg: any): number | undefined {
+function chatIdOf(msg: any): number {
   const chat = msg?.chat;
   if (chat && typeof chat.id !== "undefined") return Number(chat.id);
-  return undefined;
+  return 0;
 }
 
 /**
@@ -36,7 +36,7 @@ function chatIdOf(msg: any): number | undefined {
  * Can be an InputPeer (from resolvePeer), a PeerChat/Chat-like object,
  * or a ManagedGroup-like object with kind/className.
  */
-type ChatIdArg = MtcuteInputPeer | { chatId?: number | bigInt.BigInteger; id?: number; kind?: string; className?: string; [key: string]: unknown };
+type ChatIdArg = number | MtcuteInputPeer | { chatId?: number | bigInt.BigInteger; id?: number; kind?: string; className?: string; [key: string]: unknown };
 
 /**
  * Entity type returned by safeGetEntity - partial Telegram entity.

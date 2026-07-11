@@ -922,7 +922,7 @@ async function handleEnhancedLotteryJoin(msg: MessageContext): Promise<void> {
   }
 
   // Validate user conditions
-  const validation = await validateUserConditions(msg.client as TelegramClient, sender, activeLottery, chatId);
+  const validation = await validateUserConditions(msg.client as TelegramClient, sender as unknown as LotteryUser, activeLottery, chatId);
   if (!validation.valid) {
     try {
       await msg.delete(); // Silently delete invalid participation
@@ -936,8 +936,8 @@ async function handleEnhancedLotteryJoin(msg: MessageContext): Promise<void> {
   const userInfo = {
     user_id: String(sender.id || sender),
     username: sender.username || null,
-    first_name: sender.firstName || null,
-    last_name: sender.lastName || null
+    first_name: (sender as User).firstName || null,
+    last_name: (sender as User).lastName || null
   };
 
   const added = addParticipantToLottery(activeLottery.id, userInfo);
