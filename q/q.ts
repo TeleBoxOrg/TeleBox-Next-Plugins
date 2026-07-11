@@ -67,7 +67,7 @@ async function quoteMsgs(msg: MessageContext): Promise<void> {
           async (conv) => {
             await client.forwardMessagesById({
               fromChatId: msg.chat.id,
-              messages: msgs.map((m) => m.id),
+              messages: msgs.map((m: { id: number }) => m.id),
               toChatId: botName,
             });
             response = await conv.getResponse();

@@ -4,6 +4,7 @@ import type { MessageContext } from "@mtcute/dispatcher";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
 import type { tl } from "@mtcute/core";
+import type { Message } from "@mtcute/node";
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
 
@@ -85,7 +86,7 @@ class ClearStickerPlugin extends Plugin {
       while (hasMore && deletedCount < maxCount) {
         try {
   
-          const history = await client.getHistory(chatId, {
+          const history: Message[] = await client.getHistory(chatId, {
             limit,
             ...(offsetMsgId !== undefined ? { offset: { id: offsetMsgId, date: 0 } } : {}),
           });

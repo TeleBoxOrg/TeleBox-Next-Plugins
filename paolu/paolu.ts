@@ -178,11 +178,11 @@ class PaoluPlugin extends Plugin {
           }
 
           // 过滤掉当前命令消息
-          const messagesToDelete = history.filter((m) => m.id !== msg.id);
+          const messagesToDelete = history.filter((m: { id: number }) => m.id !== msg.id);
 
           if (messagesToDelete.length > 0) {
             try {
-              await client.deleteMessagesById(chatId, messagesToDelete.map((m) => m.id), { revoke: true });
+              await client.deleteMessagesById(chatId, messagesToDelete.map((m: { id: number }) => m.id), { revoke: true });
               deletedCount += messagesToDelete.length;
             } catch (_e: unknown) {
               // 逐个删除

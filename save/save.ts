@@ -1358,8 +1358,8 @@ class PrometheusPlugin extends Plugin {
 
           const messages = await client.getMessages(messageInfo.chatId, searchIds);
           const groupMessages = messages
-            .filter((msg): msg is Message => !!msg && msg.groupedId?.toString() === messageInfo.groupedId)
-            .sort((a, b) => a.id - b.id);
+            .filter((msg: any): msg is Message => !!msg && msg.groupedId?.toString() === messageInfo.groupedId)
+            .sort((a: Message, b: Message) => a.id - b.id);
           const localGroupDirName = localTarget ? `group_${messageInfo.groupedId}` : undefined;
            
           for (let j = 0; j < groupMessages.length; j++) {
