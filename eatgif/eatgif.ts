@@ -12,14 +12,14 @@ import { getPrefixes } from "@utils/pluginManager";
 import path from "path";
 import fs from "fs";
 import { encode, UnencodedFrame } from "modern-gif";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
 
-const execAsync = promisify(exec);
+const execAsync = promisify(execFile);
 
 // 由于gif可能很多帧，最好缓存在本地，而不是每次都远程拿不同的帧数
 const ASSET_PATH = createDirectoryInAssets("eatgif");
@@ -241,11 +241,17 @@ class EatGifPlugin extends Plugin {
 
     fs.writeFileSync(gifPath, Buffer.from(output));
 
-    const cmd = `ffmpeg -y -i ${gifPath} -c:v libvpx-vp9 -b:v 0 -crf 41 -pix_fmt yuva420p -auto-alt-ref 0 ${webmPath}`;
-
     try {
       await msg.edit({ text: html`⏳ 正在转换为 webm 格式...` });
-      await execAsync(cmd);
+      await execAsync("ffmpeg", [
+        "-y", "-i", gifPath,
+        "-c:v", "libvpx-vp9",
+        "-b:v", "0",
+        "-crf", "41",
+        "-pix_fmt", "yuva420p",
+        "-auto-alt-ref", "0",
+        webmPath,
+      ]);
 
       const client = await getGlobalClient();
       if (!client) throw new Error("Client not available");
