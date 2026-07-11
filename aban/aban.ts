@@ -16,7 +16,7 @@ import { npm_install } from "@utils/npm_install";
 import { logger } from "@utils/logger";
 import { sleep } from "@utils/asyncHelpers";
 import { getErrorMessage } from "@utils/errorHelpers";
-import type { tl } from "@mtcute/core";
+import type { tl, Long } from "@mtcute/core";
 import type { MtcuteMessageContext } from "@utils/mtcuteTypes";
 import type { MtcuteInputPeer, MtcuteInputChannel, MtcuteInputUser } from "@utils/mtcuteTypes";
 import { htmlEscape } from "@utils/htmlEscape";
@@ -341,7 +341,7 @@ class UserResolver {
   ): Promise<PartialEntity | null> {
     try {
       // Resolve peer first to determine entity type and ID
-      const peer = await (client as unknown as ClientInternals).resolvePeer(target) as { _?: string; userId?: number; chatId?: number; channelId?: number; accessHash?: string | number };
+      const peer = await (client as unknown as ClientInternals).resolvePeer(target) as { _?: string; userId?: number; chatId?: number; channelId?: number; accessHash?: Long };
       if (!peer) return null;
 
       const userId = peer.userId ? Number(peer.userId) : undefined;
@@ -352,8 +352,8 @@ class UserResolver {
         try {
           const users = await client.call({
             _: 'users.getUsers',
-            id: [{ _: 'inputUser', userId, accessHash: peer.accessHash || 0n }],
-          }) as Array<Record<string, unknown>>;
+            id: [{ _: 'inputUser', userId, accessHash: (peer.accessHash || 0 as unknown as Long) }],
+          }) as unknown as Array<Record<string, unknown>>;
           if (Array.isArray(users) && users.length > 0 && (users[0] as { _?: string })._ !== 'userEmpty') {
             return users[0] as PartialEntity;
           }
@@ -365,7 +365,7 @@ class UserResolver {
           const chats = await client.call({
             _: 'messages.getChats',
             id: [lookUpId],
-          }) as { chats?: Array<Record<string, unknown>> };
+          }) as unknown as { chats?: Array<Record<string, unknown>> };
           if (chats?.chats?.[0]) return chats.chats[0] as PartialEntity;
         } catch { /* fallback to peer */ }
       }
