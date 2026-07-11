@@ -342,7 +342,7 @@ class SSHPlugin extends Plugin {
     
     if (!canExecute) {
       await msg.edit({
-        text: html`🔒 <b>权限限制</b><br><br>此SSH管理插件只能在以下位置执行：<br>• 收藏夹<br>• 已设置的目标会话<br><br>💡 当前目标: <code>`
+        text: html(`🔒 <b>权限限制</b><br><br>此SSH管理插件只能在以下位置执行：<br>• 收藏夹<br>• 已设置的目标会话<br><br>💡 当前目标: <code>${htmlEscape(targetChat)}</code>`)
       });
       return;
     }
@@ -437,6 +437,7 @@ class SSHPlugin extends Plugin {
 
         default:
           await msg.edit({
+            text: `❌ 未知子命令: <code>${htmlEscape(sub)}</code>\n\n使用 <code>${mainPrefix}ssh help</code> 查看帮助`,
           });
       }
     } catch (error: unknown) {
