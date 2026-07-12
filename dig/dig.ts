@@ -6,6 +6,7 @@ import util from "util";
 import axios from "axios";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
+import { htmlEscape } from "@utils/htmlEscape";
 
 const execFilePromise = util.promisify(execFile);
 
@@ -29,17 +30,7 @@ function sanitizeDigArgs(args: string[]): string[] | null {
   return args;
 }
 
-function htmlEscape(text: any): string {
-  if (typeof text !== "string") {
-    text = String(text);
-  }
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;");
-}
+
 
 const COMMON_RECORD_TYPES = [
   "A",
