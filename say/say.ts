@@ -1036,7 +1036,7 @@ class SayPlugin extends Plugin {
 
             if (!anyProviderConfigured(cfg)) {
                 await msg.edit({
-                    text: thtml(`❌ 请先配置服务商密钥\n${mainPrefix}say key mimo <apiKey>\n${mainPrefix}say key volc <apiKey>\n${mainPrefix}say key fish <apiKey>`),
+                    text: thtml(`❌ 请先配置服务商密钥\n${mainPrefix}say key mimo &lt;apiKey&gt;\n${mainPrefix}say key volc &lt;apiKey&gt;\n${mainPrefix}say key fish &lt;apiKey&gt;`),
                 });
                 return;
             }

@@ -245,7 +245,7 @@ class NodeSeekPlugin extends Plugin {
 
       try {
         if (!sub || sub === "help") {
-          await msg.edit({ text: thtml(HELP_TEXT),  });
+          await msg.edit({ text: thtml(HELP_TEXT) });
           return;
         }
 
@@ -314,7 +314,7 @@ class NodeSeekPlugin extends Plugin {
           return;
         }
 
-        await msg.edit({ text: thtml(HELP_TEXT),  });
+        await msg.edit({ text: thtml(HELP_TEXT) });
       } catch (error: unknown) {
         await msg.edit({ text: `❌ 出错了: ${getErrorMessage(error)}` });
       }
