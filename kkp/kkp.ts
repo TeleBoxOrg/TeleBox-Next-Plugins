@@ -135,8 +135,15 @@ class KkpPlugin extends Plugin {
   ): Promise<Message | null> {
     return new Promise((resolve) => {
       const startTime = Date.now();
-      const listenerId = `${(botEntity as { id?: unknown }).id}_${startTime}_${Math.random()}`;
+      const botUserId = "userId" in botEntity ? String(botEntity.userId) : "";
+      const listenerId = `${botUserId}_${startTime}_${Math.random()}`;
       let isResolved = false;
+
+      if (!botUserId) {
+        logger.error("[kkp] 机器人实体不是用户 peer:", botEntity._);
+        resolve(null);
+        return;
+      }
 
       const cleanup = (result: Message | null) => {
         if (isResolved) return;
@@ -161,14 +168,13 @@ class KkpPlugin extends Plugin {
         try {
           if (!message) return;
           const senderId = String(message.sender?.id || "");
-          const botId = String((botEntity as { id?: unknown }).id);
 
           // mtcute: message.date is Date object
           const messageDate = message.date instanceof Date
             ? message.date.getTime()
             : 0;
 
-          if (senderId === botId && messageDate >= startTime - 1000) {
+          if (senderId === botUserId && messageDate >= startTime - 1000) {
             if (this.isVideoMessage(message)) cleanup(message);
           }
         } catch (error: unknown) {
