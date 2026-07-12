@@ -196,7 +196,7 @@ async function installDependencies(msg: MessageContext): Promise<void> {
       require.resolve("better-sqlite3");
     } catch (e: unknown) {
       logger.info("[INSTALLING] 'better-sqlite3' not found. Installing via npm...", e);
-      await execFileAsync("npm", ["install", "better-sqlite3"], { cwd: "/root/telebox" });
+      await execFileAsync("npm", ["install", "better-sqlite3"], { cwd: "/root/telebox_mtcute" });
       logger.info("[SUCCESS] Installed 'better-sqlite3'.");
     }
     try {
