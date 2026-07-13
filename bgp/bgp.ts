@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import axios from "axios";
 import sharp from "sharp";

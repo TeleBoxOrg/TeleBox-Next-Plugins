@@ -6,7 +6,7 @@ import { createDirectoryInAssets, createDirectoryInTemp } from "@utils/pathHelpe
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteMessageContext } from "@utils/mtcuteTypes";
 import type { Message } from "@mtcute/core";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { JSONFilePreset } from "lowdb/node";
 import * as fs from "fs";
 import * as path from "path";
@@ -424,7 +424,7 @@ ${codeTag(`${commandName} br medium`)} - 设置码率，常用 low/medium/high
 ${codeTag(`${commandName} check`)} - 一键测活所有音乐源`;
 
 class MusicHubPlugin extends Plugin {
-  description: string = `Music Hub 多音源音乐搜索和下载<br><br>${helpText}`;
+  description: string = `Music Hub 多音源音乐搜索和下载\n\n${helpText}`;
   private db?: Awaited<ReturnType<typeof JSONFilePreset<MusicHubConfig>>>;
   private sessions = new Map<string, SearchSession>();
   // 活跃传输进度定时器，cleanup() 时统一清空，防止插件重载时泄漏 setInterval

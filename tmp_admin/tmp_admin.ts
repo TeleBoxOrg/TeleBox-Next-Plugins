@@ -8,7 +8,7 @@ import type { Low } from "lowdb";
 import { JSONFilePreset } from "lowdb/node";
 import path from "path";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
 import { hasRawType, getRawType } from "@utils/entityTypeGuards";
 import type { InputChannel, InputPeerChannel, InputUser, InputPeerUser } from "@utils/tlTypes";
@@ -354,7 +354,7 @@ class TmpAdminPlugin extends Plugin {
     this.jobs.clear();
   }
 
-  description: string = `<br>临时管理员<br><br>${helpText}`;
+  description: string = `\n临时管理员\n\n${helpText}`;
 
   cmdHandlers: Record<
     string,

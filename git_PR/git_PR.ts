@@ -1,7 +1,7 @@
 
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
@@ -79,10 +79,10 @@ async function sendLongMessage(msg: MessageContext, text: string) {
     await msg.edit({ text: html(parts[0]) });
     return;
   }
-  await msg.edit({ text: html(parts[0] + `<br><br>📄 (1/${parts.length})`) });
+  await msg.edit({ text: html(parts[0] + `\n\n📄 (1/${parts.length})`) });
   // 注意：消息必须按顺序逐条发送，不能并行（每条消息依赖前一条发送完成以保持顺序）
   for (let i = 1; i < parts.length; i++) {
-    await msg.replyText(html(parts[i] + `<br><br>📄 (${i + 1}/${parts.length})`));
+    await msg.replyText(html(parts[i] + `\n\n📄 (${i + 1}/${parts.length})`));
   }
 }
 
@@ -177,7 +177,7 @@ async function getApi() {
 }
 
 class GitManagerPlugin extends Plugin {
-  description: string = `通过Git API管理PR<br><br>${help_text}`;
+  description: string = `通过Git API管理PR\n\n${help_text}`;
 
   cmdHandlers = {
     [pluginName]: async (msg: MessageContext) => {
@@ -222,7 +222,7 @@ class GitManagerPlugin extends Plugin {
             await this.handleMergeAll(msg, args.slice(1));
             break;
           default:
-            await msg.edit({ text: html`❌ <b>未知子命令:</b> <code>${htmlEscape(sub)}</code><br><br>${help_text}` });
+            await msg.edit({ text: html`❌ <b>未知子命令:</b> <code>${htmlEscape(sub)}</code>\n\n${help_text}` });
         }
       } catch (error: unknown) {
         logger.error('[git] 插件执行失败:', error);
@@ -233,7 +233,7 @@ class GitManagerPlugin extends Plugin {
 
   private async handleLogin(msg: MessageContext, args: string[]) {
     if (args.length < 3) {
-        await msg.edit({ text: html`❌ <b>参数不足</b><br><br><b>格式:</b> <code>${mainPrefix}${pluginName} login &lt;邮箱&gt; &lt;用户名&gt; &lt;Token&gt;</code>` });
+        await msg.edit({ text: html`❌ <b>参数不足</b>\n\n<b>格式:</b> <code>${mainPrefix}${pluginName} login &lt;邮箱&gt; &lt;用户名&gt; &lt;Token&gt;</code>` });
       return;
     }
 

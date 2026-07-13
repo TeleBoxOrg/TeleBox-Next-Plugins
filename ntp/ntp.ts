@@ -1,7 +1,7 @@
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import * as dgram from "dgram";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -229,7 +229,7 @@ async function setSystemTimeBestEffort(serverTimeMs: number): Promise<{
 }
 
 class NtpPlugin extends Plugin {
-  description: string = `<br>NTP 对时<br><br>${help_text}`;
+  description: string = `\nNTP 对时\n\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
@@ -259,7 +259,7 @@ class NtpPlugin extends Plugin {
                 )}</code>`
               : undefined,
           ].filter(Boolean);
-          await msg.edit({ text: html(lines.join("<br>")) });
+          await msg.edit({ text: html(lines.join("\n")) });
         } catch (e: unknown) {
           await msg.edit({ text: html(`❌ 查询失败：${htmlEscape(getErrorMessage(e))}`) });
         }
@@ -290,8 +290,8 @@ class NtpPlugin extends Plugin {
             await msg.edit({
               text: html(
                 header +
-                `<br>• 已尝试设置系统时间：<code>${htmlEscape(setRes.command || "")}</code>` +
-                (setRes.stdout ? `<br><pre>${htmlEscape((setRes.stdout || "").trim())}</pre>` : "")
+                `\n• 已尝试设置系统时间：<code>${htmlEscape(setRes.command || "")}</code>` +
+                (setRes.stdout ? `\n<pre>${htmlEscape((setRes.stdout || "").trim())}</pre>` : "")
               ),
             });
           } else {
@@ -299,10 +299,10 @@ class NtpPlugin extends Plugin {
             await msg.edit({
               text: html(
                 header +
-                `<br>• 未能自动设置系统时间。` +
-                `<br>▫︎ 原因/提示：${hint}` +
-                `<br>▫︎ 请以管理员权限运行，或手动设置系统时间为：` +
-                `<br><code>${formatDateCN(new Date(result.serverTimeMs))}</code>`
+                `\n• 未能自动设置系统时间。` +
+                `\n▫︎ 原因/提示：${hint}` +
+                `\n▫︎ 请以管理员权限运行，或手动设置系统时间为：` +
+                `\n<code>${formatDateCN(new Date(result.serverTimeMs))}</code>`
               ),
             });
           }

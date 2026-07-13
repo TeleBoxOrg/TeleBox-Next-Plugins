@@ -6,7 +6,7 @@ import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { JSONFilePreset } from "lowdb/node";
 import type { TelegramClient } from "@mtcute/node";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import type { Chat, User } from "@mtcute/core";
 import * as path from "path";
 import { logger } from "@utils/logger";

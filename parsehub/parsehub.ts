@@ -5,7 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { safeGetMessages, safeGetReplyMessage } from "@utils/safeGetMessages";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { tl, Long } from "@mtcute/node";
 import { Message } from "@mtcute/core";
@@ -375,7 +375,7 @@ async function relayParseResult(
 
 class ParseHubPlugin extends Plugin {
 
-  description: string = `<br>${pluginName}<br><br>${helpText}`;
+  description: string = `\n${pluginName}\n\n${helpText}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     parsehub: async (msg: MessageContext) => {
       const rawText = msg.text || "";

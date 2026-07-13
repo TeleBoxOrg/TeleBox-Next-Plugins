@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
 import { isUser, isDocumentAttribute, hasRawType, getUsername as getEntityUsername } from "@utils/entityTypeGuards";
 import type { TelegramClient } from "@mtcute/node";
@@ -513,12 +513,12 @@ function buildDigestLines(records: DigestRecord[]): string[] {
 }
 
 function splitDigest(header: string, lines: string[]): string[] {
-  const continuationHeader = "📦 <b>Biko 消息整理</b>（续）<br><br>";
+  const continuationHeader = "📦 <b>Biko 消息整理</b>（续）\n\n";
   const parts: string[] = [];
   let current = header;
 
   for (const line of lines) {
-    const separator = current.endsWith("<br><br>") ? "" : "<br>";
+    const separator = current.endsWith("\n\n") ? "" : "\n";
     if ((current + separator + line).length > MAX_CHUNK_LENGTH) {
       parts.push(current);
       current = continuationHeader + line;
@@ -591,7 +591,7 @@ class BikoPlugin extends Plugin {
         }
 
         await msg.edit({
-          text: html(statusLines.join("<br>")),
+          text: html(statusLines.join("\n")),
           disableWebPreview: true,
         });
 
@@ -605,8 +605,8 @@ class BikoPlugin extends Plugin {
         if (records.length === 0) {
           await msg.edit({
             text: html(
-              `❌ 未找到匹配消息<br><br>` +
-              `<b>来源对话:</b> ${htmlEscape(sourceChat.display)}<br>` +
+              `❌ 未找到匹配消息\n\n` +
+              `<b>来源对话:</b> ${htmlEscape(sourceChat.display)}\n` +
               `<b>来源用户:</b> ${htmlEscape(sourceUser.display)}`
             ),
           });
@@ -626,7 +626,7 @@ class BikoPlugin extends Plugin {
           headerLines.push("<b>过滤模式:</b> 手动过滤");
         }
 
-        const header = `${headerLines.join("<br>")}<br><br>`;
+        const header = `${headerLines.join("\n")}\n\n`;
         const lines = buildDigestLines(records);
         const chunks = splitDigest(header, lines);
 
@@ -655,12 +655,12 @@ class BikoPlugin extends Plugin {
         }
 
         await msg.edit({
-          text: html(summaryLines.join("<br>")),
+          text: html(summaryLines.join("\n")),
           disableWebPreview: true,
         });
       } catch (error: unknown) {
         await msg.edit({
-          text: html(`❌ <b>Biko 执行失败</b><br><br>${htmlEscape(
+          text: html(`❌ <b>Biko 执行失败</b>\n\n${htmlEscape(
             extractErrorMessage(error),
           )}`),
           disableWebPreview: true,

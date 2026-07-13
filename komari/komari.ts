@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { htmlEscape } from "@utils/htmlEscape";
 import axios from "axios";
 import Database from "better-sqlite3";
@@ -631,7 +631,7 @@ async function handleKomariRequest(msg: MessageContext): Promise<void> {
     const baseUrl = ConfigManager.get(CONFIG_KEYS.KOMARI_URL);
     if (!baseUrl) {
       await msg.edit({
-        text: html`❌ 请先设置 Komari URL<br>使用命令: <code>komari _set_url &lt;URL&gt;</code>`,
+        text: html`❌ 请先设置 Komari URL\n使用命令: <code>komari _set_url &lt;URL&gt;</code>`,
       });
       return;
     }
@@ -658,12 +658,12 @@ async function handleKomariRequest(msg: MessageContext): Promise<void> {
       });
     } else {
       await msg.edit({
-        text: html`❌ 未知命令。支持的命令：<br><br>
-• <code>komari status</code> - 获取服务器基本信息<br><br>
-• <code>komari total</code> - 获取节点总览<br><br>
-• <code>komari show &lt;节点名&gt;</code> - 查看指定节点详情<br><br>
-<br><br>
-配置命令：<br><br>
+        text: html`❌ 未知命令。支持的命令：\n\n
+• <code>komari status</code> - 获取服务器基本信息\n\n
+• <code>komari total</code> - 获取节点总览\n\n
+• <code>komari show &lt;节点名&gt;</code> - 查看指定节点详情\n\n
+\n\n
+配置命令：\n\n
 • <code>komari _set_url &lt;URL&gt;</code> - 设置 Komari 服务器 URL`,
       });
     }

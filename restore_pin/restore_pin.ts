@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
@@ -126,7 +126,7 @@ class RestorePinPlugin extends Plugin {
       // 每3条更新一次进度
       if ((i + 1) % 3 === 0) {
         await msg.edit({ 
-          text: html`🔄 正在恢复第 ${i + 1}/${messageIds.length} 条置顶消息...<br>✅ 成功: ${successCount} ❌ 失败: ${errorCount}` 
+          text: html`🔄 正在恢复第 ${i + 1}/${messageIds.length} 条置顶消息...\n✅ 成功: ${successCount} ❌ 失败: ${errorCount}` 
         });
       }
 
@@ -142,14 +142,14 @@ class RestorePinPlugin extends Plugin {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    let resultText = `📊 <b>恢复完成</b><br><br>`;
-    resultText += `✅ 成功恢复: ${successCount} 条<br>`;
+    let resultText = `📊 <b>恢复完成</b>\n\n`;
+    resultText += `✅ 成功恢复: ${successCount} 条\n`;
     resultText += `❌ 恢复失败: ${errorCount} 条`;
 
     if (errors.length > 0) {
-      resultText += `<br><br><b>失败详情：</b><br>`;
+      resultText += `\n\n<b>失败详情：</b>\n`;
       errors.slice(0, 3).forEach(error => {
-        resultText += `• ${htmlEscape(error)}<br>`;
+        resultText += `• ${htmlEscape(error)}\n`;
       });
       if (errors.length > 3) {
         resultText += `• ... 还有 ${errors.length - 3} 个错误`;

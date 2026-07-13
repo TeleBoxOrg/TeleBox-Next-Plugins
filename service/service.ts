@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { logger } from "@utils/logger";

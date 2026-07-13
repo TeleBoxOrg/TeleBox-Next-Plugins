@@ -6,7 +6,7 @@ import {
   getGlobalClient,
   tryGetCurrentGenerationContext,
 } from "@utils/runtimeManager";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { TelegramClient } from "@mtcute/node";
 import type { Chat, Peer } from "@mtcute/core";
 import { safeGetMessages } from "@utils/safeGetMessages";
@@ -1269,7 +1269,7 @@ class ShiftPlugin extends Plugin {
     lowdb = null;
   }
 
-  description: string = `智能转发助手 - 自动转发消息到指定目标<br><br>${help_text}`;
+  description: string = `智能转发助手 - 自动转发消息到指定目标\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     shift: async (msg) => {
       const client = await getGlobalClient();
@@ -2015,7 +2015,7 @@ class ShiftPlugin extends Plugin {
           // 使用新的 BackupManager
           const orderLabel = hasAsc ? "正序（旧→新）" : "倒序（新→旧）";
           const progressMsg = await msg.edit({
-            text: `🔄 <b>开始备份</b>（${orderLabel}）<br><br>从 ${htmlEscape(
+            text: `🔄 <b>开始备份</b>（${orderLabel}）\n\n从 ${htmlEscape(
               getDisplayName(source)
             )} 到 ${htmlEscape(getDisplayName(target))} 的历史消息...`,
           });
@@ -2034,7 +2034,7 @@ class ShiftPlugin extends Plugin {
                   chatId: progressMsg.chat.id,
                   message: progressMsg.id,
                   text:
-                    `🔄 <b>备份进行中...</b><br><br>` +
+                    `🔄 <b>备份进行中...</b>\n\n` +
                     `进度: ${Math.round(
                       (current / total) * 100
                     )}% (${current}/${total})`,
@@ -2047,8 +2047,8 @@ class ShiftPlugin extends Plugin {
                   chatId: progressMsg.chat.id,
                   message: progressMsg.id,
                   text:
-                    `✅ <b>备份完成！</b><br><br>` +
-                    `共处理 ${stats.processedMessages} 条消息，失败 ${stats.failedMessages} 条<br>` +
+                    `✅ <b>备份完成！</b>\n\n` +
+                    `共处理 ${stats.processedMessages} 条消息，失败 ${stats.failedMessages} 条\n` +
                     `任务ID: <code>${taskId}</code>`,
                 });
               }
@@ -2059,7 +2059,7 @@ class ShiftPlugin extends Plugin {
             await client.editMessage({
               chatId: progressMsg.chat.id,
               message: progressMsg.id,
-              text: `✅ <b>备份任务已启动</b><br><br>任务ID: <code>${taskId}</code><br>使用 <code>${mainPrefix}shift backup status ${taskId}</code> 查看进度`,
+              text: `✅ <b>备份任务已启动</b>\n\n任务ID: <code>${taskId}</code>\n使用 <code>${mainPrefix}shift backup status ${taskId}</code> 查看进度`,
             });
           }
           return;

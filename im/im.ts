@@ -8,7 +8,7 @@ import { hasRawType, getMessageMedia } from "@utils/entityTypeGuards";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { TelegramClient } from "@mtcute/node";
 import type { Chat } from "@mtcute/core";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 // 使用简化的事件类型定义
 interface NewMessageEvent {
   message: MessageContext;

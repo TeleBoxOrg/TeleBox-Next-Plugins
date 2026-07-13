@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { ChatMember } from "@mtcute/core";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
@@ -134,7 +134,7 @@ class AtAllPlugin extends Plugin {
         // 发送所有消息部分
         for (let i = 0; i < messageParts.length; i++) {
           const part = messageParts[i];
-          const messageContent = `<b>@所有人:</b><br>${part}`;
+          const messageContent = `<b>@所有人:</b>\n${part}`;
           
           const sendOpts: { replyTo?: number } = {};
           if (i === 0 && msg.id) sendOpts.replyTo = msg.id;

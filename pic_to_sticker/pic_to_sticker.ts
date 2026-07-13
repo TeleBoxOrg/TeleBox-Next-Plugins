@@ -5,7 +5,7 @@ import { createDirectoryInAssets, createDirectoryInTemp } from "@utils/pathHelpe
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteMessageContext } from "@utils/mtcuteTypes";
 import type { Message } from "@mtcute/core";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import sharp from "sharp";
 import * as fs from "fs";
 import * as path from "path";
@@ -266,7 +266,7 @@ class PicToStickerPlugin extends Plugin {
       // 检查是否回复了消息
       if (!msg.replyToMessage) {
         await msg.edit({
-          text: html`❌ <b>请回复包含图片的消息</b><br><br>使用方法:<br>1. 回复包含多张图片的消息<br>2. 发送 <code>${mainPrefix}pts batch</code>`
+          text: html`❌ <b>请回复包含图片的消息</b>\n\n使用方法:\n1. 回复包含多张图片的消息\n2. 发送 <code>${mainPrefix}pts batch</code>`
         });
         return;
       }
@@ -362,7 +362,7 @@ class PicToStickerPlugin extends Plugin {
       const media = getMessageMedia(targetMsg) as { _?: string; photo?: unknown } | undefined;
       if (!media || !(media._ === 'messageMediaPhoto' || media.photo)) {
         await msg.edit({
-          text: html`❌ <b>请回复包含图片的消息</b><br><br>使用方法：<br>1. 回复包含图片的消息<br>2. 发送 <code>${mainPrefix}pts</code> 或 <code>${mainPrefix}pts [表情]</code>`
+          text: html`❌ <b>请回复包含图片的消息</b>\n\n使用方法：\n1. 回复包含图片的消息\n2. 发送 <code>${mainPrefix}pts</code> 或 <code>${mainPrefix}pts [表情]</code>`
         });
         return;
       }

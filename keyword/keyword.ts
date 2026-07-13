@@ -4,7 +4,7 @@ import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import type { ClientInternals } from "@utils/clientInternals";
 import type { MessageContext } from "@mtcute/dispatcher";
 import path from "path";

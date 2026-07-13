@@ -17,7 +17,7 @@ import { getGlobalClient, getCurrentGeneration } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
@@ -62,7 +62,7 @@ async function sendLongMessage(client: any, msg: MessageContext, htmlContent: st
   }
   // 注意：消息必须按顺序逐条发送，不能并行（每条消息依赖前一条发送完成以保持顺序）
   for (let i = 1; i < parts.length; i++) {
-    await client.sendText(msg.chat.id, html(`${parts[i]}<br><br>📄 (${i + 1}/${parts.length})`), { replyTo: msg.id });
+    await client.sendText(msg.chat.id, html(`${parts[i]}\n\n📄 (${i + 1}/${parts.length})`), { replyTo: msg.id });
   }
 }
 
@@ -238,7 +238,7 @@ const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
 
 class JavDBPlugin extends Plugin {
 
-  description: string = `JavDB 番号查询<br><br>${help_text}`;
+  description: string = `JavDB 番号查询\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {};
 
   constructor() {
@@ -365,13 +365,13 @@ class JavDBPlugin extends Plugin {
       // 处理 Telegram API 频率限制
       if (m.includes("FLOOD_WAIT")) {
         const wait = parseInt(m.match(/\d+/)?.[0] || "60", 10);
-        await msg.edit({ text: html(`⏳ <b>请求过于频繁</b><br><br>需要等待 ${wait} 秒后重试`) });
+        await msg.edit({ text: html(`⏳ <b>请求过于频繁</b>\n\n需要等待 ${wait} 秒后重试`) });
         return;
       }
       
       // 处理消息过长错误
       if (m.includes("MESSAGE_TOO_LONG")) {
-        await msg.edit({ text: html("❌ <b>消息过长</b><br><br>请减少内容或以文件方式发送") });
+        await msg.edit({ text: html("❌ <b>消息过长</b>\n\n请减少内容或以文件方式发送") });
         return;
       }
       

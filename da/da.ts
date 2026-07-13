@@ -2,7 +2,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { TelegramClient } from "@mtcute/node";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import * as path from "path";
 import * as fs from "fs";
@@ -582,7 +582,7 @@ const da = async (msg: MessageContext) => {
 class DaPlugin extends Plugin {
 
   // 必须在 description 中引用 help_text
-  description: string = `群组消息批量删除插件<br><br>${help_text}`;
+  description: string = `群组消息批量删除插件\n\n${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     da,

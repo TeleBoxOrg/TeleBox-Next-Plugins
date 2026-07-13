@@ -4,7 +4,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteInputPeerLike, MtcuteReactions } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
 import bigInt, { BigInteger } from "big-integer";
@@ -76,7 +76,7 @@ const defaultState: TraceDB = {
 };
 
 class TracePlugin extends Plugin {
-  public description: string = `自动回应消息。<br><br>${help_text}`;
+  public description: string = `自动回应消息。\n\n${help_text}`;
   public cmdHandlers = { trace: this.handleTrace.bind(this) };
   public listenMessageHandler = this.handleMessage.bind(this);
 

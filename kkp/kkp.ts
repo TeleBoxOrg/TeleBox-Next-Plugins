@@ -3,7 +3,7 @@ import type { MessageContext } from "@mtcute/dispatcher";
 import type { TelegramClient } from "@mtcute/node";
 import type { Message } from "@mtcute/core";
 import { tl, Long } from "@mtcute/core";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
@@ -27,7 +27,7 @@ const help_text = `🎲 <b>随机色色视频获取</b>
 
 class KkpPlugin extends Plugin {
 
-  description: string = `🎲 随机色色视频获取<br><br>${help_text}`;
+  description: string = `🎲 随机色色视频获取\n\n${help_text}`;
 
   // 存储等待回复的消息监听器
   private messageListeners: Map<

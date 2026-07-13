@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { safeGetMe } from "@utils/authGuards";
@@ -36,7 +36,7 @@ function scheduleTimer(fn: () => void, ms: number): ReturnType<typeof setTimeout
 
 class PaoluPlugin extends Plugin {
 
-  description: string = `群组一键跑路插件 - 删除消息并禁言所有成员<br><br>${help_text}`;
+  description: string = `群组一键跑路插件 - 删除消息并禁言所有成员\n\n${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
     paolu: this.handlePaolu.bind(this),
@@ -115,7 +115,7 @@ class PaoluPlugin extends Plugin {
 
       // 开始执行跑路操作
       await msg.edit({ 
-        text: html`🚨 <b>一键跑路</b><br><br>正在处理中...`, 
+        text: html`🚨 <b>一键跑路</b>\n\n正在处理中...`, 
       });
 
       // 1. 禁言所有成员
@@ -200,7 +200,7 @@ class PaoluPlugin extends Plugin {
           
           // 更新进度
           await msg.edit({
-            text: html`🚨 <b>一键跑路</b><br><br>正在删除消息...<br>已删除: ${deletedCount} 条`,
+            text: html`🚨 <b>一键跑路</b>\n\n正在删除消息...\n已删除: ${deletedCount} 条`,
           });
           
           if (history.length < BATCH_SIZE) {
@@ -225,7 +225,7 @@ class PaoluPlugin extends Plugin {
 
       // 4. 发送完成提示（自动删除）
       try {
-        const completionMsg = await client.sendText(chatId, html`✅ <b>跑路完成</b><br><br>• 已禁言所有成员<br>• 已删除 ${deletedCount} 条消息<br><br>此消息将在10秒后自动删除`);
+        const completionMsg = await client.sendText(chatId, html`✅ <b>跑路完成</b>\n\n• 已禁言所有成员\n• 已删除 ${deletedCount} 条消息\n\n此消息将在10秒后自动删除`);
 
         scheduleTimer(async () => {
           try {

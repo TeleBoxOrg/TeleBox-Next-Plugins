@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import sharp from "sharp";
 import axios from "axios";
@@ -105,7 +105,7 @@ async function assetBufferFor(filePath: string): Promise<Buffer> {
 
 class EatGifPlugin extends Plugin {
 
-  description: string = `生成头像融合动图<br><br>${help_text}`;
+  description: string = `生成头像融合动图\n\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
@@ -150,7 +150,7 @@ class EatGifPlugin extends Plugin {
 
       if (!msg.replyToMessage && !trigger?.replyToMessage) {
         await msg.edit({
-          text: html`💡 请先回复一个用户的消息再执行<br><br>使用：<code>${commandName} list</code> 查看表情列表`,
+          text: html`💡 请先回复一个用户的消息再执行\n\n使用：<code>${commandName} list</code> 查看表情列表`,
         });
         return;
       }

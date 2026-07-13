@@ -4,7 +4,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { JSONFilePreset } from "lowdb/node";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import type { TelegramClient } from "@mtcute/node";
 import { User, Chat } from "@mtcute/node";
 import path from "path";
@@ -197,7 +197,7 @@ async function sendLongResult(msg: MessageContext, text: string): Promise<void> 
   // 注意：消息必须按顺序逐条发送，不能并行（每条续消息依赖前一条发送完成以保持顺序）
   for (let index = 1; index < chunks.length; index++) {
     await msg.replyText(
-      html(`📋 <b>续 ${index}/${chunks.length - 1}</b><br><br>${chunks[index]}`),
+      html(`📋 <b>续 ${index}/${chunks.length - 1}</b>\n\n${chunks[index]}`),
     );
   }
 }

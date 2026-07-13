@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import axios from "axios";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { logger } from "@utils/logger";
@@ -182,25 +182,25 @@ const ip = async (msg: MessageContext) => {
       let resultText = "";
 
       if (data.proxy) {
-        resultText += "此 IP 可能为代理 IP<br>";
+        resultText += "此 IP 可能为代理 IP\n";
       }
       if (data.hosting) {
-        resultText += "此 IP 可能为数据中心 IP<br>";
+        resultText += "此 IP 可能为数据中心 IP\n";
       }
       if (resultText) {
-        resultText += "<br>";
+        resultText += "\n";
       }
 
-      resultText += `🌍 <b>IP/域名查询结果</b><br><br><b>🔍 查询目标:</b> <code>${htmlEscape(ipAddress)}</code><br><b>📍 地理位置:</b> ${htmlEscape(country)} - ${htmlEscape(region)} - ${htmlEscape(city)}<br><b>🏢 ISP:</b> ${htmlEscape(isp)}<br><b>🏦 组织:</b> ${htmlEscape(org)}<br><b>🔢 AS号:</b> <code>${htmlEscape(asInfo)}</code>`;
+      resultText += `🌍 <b>IP/域名查询结果</b>\n\n<b>🔍 查询目标:</b> <code>${htmlEscape(ipAddress)}</code>\n<b>📍 地理位置:</b> ${htmlEscape(country)} - ${htmlEscape(region)} - ${htmlEscape(city)}\n<b>🏢 ISP:</b> ${htmlEscape(isp)}\n<b>🏦 组织:</b> ${htmlEscape(org)}\n<b>🔢 AS号:</b> <code>${htmlEscape(asInfo)}</code>`;
 
       if (data.timezone) {
-        resultText += `<br><b>⏰ 时区:</b> ${htmlEscape(data.timezone)}`;
+        resultText += `\n<b>⏰ 时区:</b> ${htmlEscape(data.timezone)}`;
       }
 
       const asMatch = asInfo.match(/^AS(\d+)/);
       if (asMatch) {
         const asNum = asMatch[1];
-        resultText += `<br><br>https://bgp.he.net/AS${asNum}`;
+        resultText += `\n\nhttps://bgp.he.net/AS${asNum}`;
       }
 
       await msg.edit({

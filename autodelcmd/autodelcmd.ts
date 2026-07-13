@@ -1,6 +1,6 @@
 //@ts-nocheck
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
@@ -841,11 +841,11 @@ class AutoDeletePlugin extends Plugin {
   private async handleAddRule(msg: MessageContext, args: string[]) {
     if (args.length < 2) {
       await msg.edit({ 
-        text: html(`❌ 参数不足<br>用法: <code>${mainPrefix}autodelcmd add [命令] [延迟秒数] [参数...] [-r] [-e]</code><br><br>` +
-              `示例:<br>` +
-              `• <code>${mainPrefix}autodelcmd add ping 30</code> - ping命令30秒删除(包含带参数的)<br>` +
-              `• <code>${mainPrefix}autodelcmd add ping 30 -e</code> - 🎯只有无参数的ping命令30秒删除<br>` +
-              `• <code>${mainPrefix}autodelcmd add speedtest 60 -r</code> - speedtest命令60秒删除(🔄含响应)<br>` +
+        text: html(`❌ 参数不足\n用法: <code>${mainPrefix}autodelcmd add [命令] [延迟秒数] [参数...] [-r] [-e]</code>\n\n` +
+              `示例:\n` +
+              `• <code>${mainPrefix}autodelcmd add ping 30</code> - ping命令30秒删除(包含带参数的)\n` +
+              `• <code>${mainPrefix}autodelcmd add ping 30 -e</code> - 🎯只有无参数的ping命令30秒删除\n` +
+              `• <code>${mainPrefix}autodelcmd add speedtest 60 -r</code> - speedtest命令60秒删除(🔄含响应)\n` +
               `• <code>${mainPrefix}autodelcmd add tpm 60 list ls search -r</code> - tpm list/ls/search任一命令60秒删除(🔄含响应)`)
       });
       return;
@@ -893,7 +893,7 @@ class AutoDeletePlugin extends Plugin {
     // 检查精确匹配标志与参数的冲突
     if (exactMatch && parameters.length > 0) {
       await msg.edit({ 
-        text: html("❌ 精确匹配模式（-e/--exact）不能与参数同时使用<br>精确匹配专用于只匹配无参数的命令调用")
+        text: html("❌ 精确匹配模式（-e/--exact）不能与参数同时使用\n精确匹配专用于只匹配无参数的命令调用")
       });
       return;
     }
@@ -911,7 +911,7 @@ class AutoDeletePlugin extends Plugin {
     if (!result.success) {
       // 参数冲突，显示错误信息
       await msg.edit({ 
-        text: html(`❌ <b>添加规则失败</b><br><br>${result.error}`)
+        text: html(`❌ <b>添加规则失败</b>\n\n${result.error}`)
       });
       return;
     }
@@ -936,7 +936,7 @@ class AutoDeletePlugin extends Plugin {
           const safeMergedCodeParams = formatCodeParams(mergedParams);
           
           await msg.edit({ 
-            text: html(`✅ 已合并自定义规则参数: <code>${safeCommand} [${safeMergedParams}]</code> → ${delay}秒删除${responseText}<br><br>`) +
+            text: html(`✅ 已合并自定义规则参数: <code>${safeCommand} [${safeMergedParams}]</code> → ${delay}秒删除${responseText}\n\n`) +
                   `触发条件: ${safeCommand} 命令的第一个参数为 ${safeMergedCodeParams} 时` +
                 (deleteResponse ? "\n🔄 同时删除响应消息" : "")
         });
@@ -945,7 +945,7 @@ class AutoDeletePlugin extends Plugin {
         const safeCodeParams = formatCodeParams(parameters);
         const params = `[${safeParams}]`;
         await msg.edit({ 
-          text: html(`✅ 已添加自定义规则: <code>${safeCommand} ${params}</code> → ${delay}秒删除${responseText}<br><br>`) +
+          text: html(`✅ 已添加自定义规则: <code>${safeCommand} ${params}</code> → ${delay}秒删除${responseText}\n\n`) +
                 `触发条件: ${safeCommand} 命令的第一个参数为 ${safeCodeParams} 时` +
                 (deleteResponse ? "\n🔄 同时删除响应消息" : "")
         });
@@ -953,7 +953,7 @@ class AutoDeletePlugin extends Plugin {
     } else {
       const matchType = exactMatch ? "只有无参数的" : "任何";
       await msg.edit({ 
-        text: html(`✅ 已添加自定义规则: <code>${safeCommand}</code> → ${delay}秒删除${responseText}${exactText}<br><br>`) +
+        text: html(`✅ 已添加自定义规则: <code>${safeCommand}</code> → ${delay}秒删除${responseText}${exactText}\n\n`) +
               `触发条件: ${matchType} ${safeCommand} 命令` +
               (deleteResponse ? "\n🔄 同时删除响应消息" : "") +
               (exactMatch ? "\n🎯 精确匹配：不匹配带参数的调用" : "")
@@ -964,7 +964,7 @@ class AutoDeletePlugin extends Plugin {
   private async handleRemoveRule(msg: MessageContext, args: string[]) {
     if (args.length < 1) {
       await msg.edit({ 
-        text: html(`❌ 参数不足<br>用法: <code>${mainPrefix}autodelcmd del [规则ID或命令名]</code><br><br>`) +
+        text: html(`❌ 参数不足\n用法: <code>${mainPrefix}autodelcmd del [规则ID或命令名]</code>\n\n`) +
               `<b>删除方式:</b>\n` +
               `• 使用规则ID删除: <code>${mainPrefix}autodelcmd del [规则ID]</code>\n` +
               `• 使用命令名查看规则: <code>${mainPrefix}autodelcmd del [命令名]</code>\n\n` +
@@ -988,7 +988,7 @@ class AutoDeletePlugin extends Plugin {
       const response = rule.deleteResponse ? ' 🔄' : '';
       
       await msg.edit({ 
-        text: html(`✅ 已删除自定义规则:<br><code>${htmlEscape(rule.command)}${params}</code> → ${rule.delay}秒${response}${exact}<br><br><code>[ID: ${htmlEscape(rule.id || "")}]</code>`) 
+        text: html(`✅ 已删除自定义规则:\n<code>${htmlEscape(rule.command)}${params}</code> → ${rule.delay}秒${response}${exact}\n\n<code>[ID: ${htmlEscape(rule.id || "")}]</code>`) 
       });
       return;
     }
@@ -998,7 +998,7 @@ class AutoDeletePlugin extends Plugin {
     
     if (matchingRules.length === 0) {
       await msg.edit({ 
-        text: html(`❌ 未找到匹配的规则<br><br>• 规则ID "${htmlEscape(input)}" 不存在<br>• 命令 "${htmlEscape(input)}" 没有自定义规则<br><br>使用 <code>${mainPrefix}autodelcmd list</code> 查看所有规则`) 
+        text: html(`❌ 未找到匹配的规则\n\n• 规则ID "${htmlEscape(input)}" 不存在\n• 命令 "${htmlEscape(input)}" 没有自定义规则\n\n使用 <code>${mainPrefix}autodelcmd list</code> 查看所有规则`) 
       });
       return;
     }
@@ -1022,7 +1022,7 @@ class AutoDeletePlugin extends Plugin {
     await serviceInstance!.resetToDefaults();
     const allRules = serviceInstance!.getAllRules();
     await msg.edit({ 
-      text: html(`✅ 已重置为默认配置<br><br>已恢复 ${allRules.length} 条预设规则<br><br>使用 <code>${mainPrefix}autodelcmd list</code> 查看所有规则`) 
+      text: html(`✅ 已重置为默认配置\n\n已恢复 ${allRules.length} 条预设规则\n\n使用 <code>${mainPrefix}autodelcmd list</code> 查看所有规则`) 
     });
   }
 
@@ -1050,14 +1050,14 @@ class AutoDeletePlugin extends Plugin {
   private async handleEnable(msg: MessageContext) {
     await serviceInstance!.setEnabled(true);
     await msg.edit({ 
-      text: html("🟢 <b>自动删除功能已启用</b><br><br>符合规则的命令消息将自动延迟删除") 
+      text: html("🟢 <b>自动删除功能已启用</b>\n\n符合规则的命令消息将自动延迟删除") 
     });
   }
 
   private async handleDisable(msg: MessageContext) {
     await serviceInstance!.setEnabled(false);
     await msg.edit({ 
-      text: html("🔴 <b>自动删除功能已禁用</b><br><br>命令消息将不再自动删除") 
+      text: html("🔴 <b>自动删除功能已禁用</b>\n\n命令消息将不再自动删除") 
     });
   }
 

@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import type { Peer, User } from "@mtcute/core";
 import { JSONFilePreset } from "lowdb/node";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -28,11 +28,11 @@ interface DBData {
 class GreetingPlugin extends Plugin {
     // 动态生成描述，包含帮助信息
     description = () => {
-        const help = `🌙 <b>早晚安统计插件</b><br><br>` +
-                     `自动回复早晚安并统计排名。默认关闭，需手动开启。<br><br>` +
-                     `<b>指令:</b><br>` +
-                     `• <code>${mainPrefix}goodnight on/off</code> - 开启或关闭统计<br>` +
-                     `• <code>${mainPrefix}goodnight utc+8</code> - 设置时区 (支持 utc+8, utc-5 格式)<br>` +
+        const help = `🌙 <b>早晚安统计插件</b>\n\n` +
+                     `自动回复早晚安并统计排名。默认关闭，需手动开启。\n\n` +
+                     `<b>指令:</b>\n` +
+                     `• <code>${mainPrefix}goodnight on/off</code> - 开启或关闭统计\n` +
+                     `• <code>${mainPrefix}goodnight utc+8</code> - 设置时区 (支持 utc+8, utc-5 格式)\n` +
                      `• <code>${mainPrefix}goodnight</code> - 查看状态`;
         return help;
     };
@@ -156,7 +156,7 @@ class GreetingPlugin extends Plugin {
             
             const sign = timezoneInput >= 0 ? "+" : "";
             await msg.edit({ 
-                text: html(`✅ 已将本群时区设置为 <b>UTC${sign}${timezoneInput}</b><br>当前时间: ${dayjs(targetDate).format("HH:mm:ss")}`)
+                text: html(`✅ 已将本群时区设置为 <b>UTC${sign}${timezoneInput}</b>\n当前时间: ${dayjs(targetDate).format("HH:mm:ss")}`)
             });
         } else {
             // 显示状态和帮助
@@ -164,13 +164,13 @@ class GreetingPlugin extends Plugin {
             const tzSign = groupData.timezone >= 0 ? "+" : "";
             const currentTzTime = dayjs(this.getDateByTimezone(groupData.timezone)).format("YYYY-MM-DD HH:mm:ss");
             
-            const help = `🌙 <b>早晚安统计插件</b><br><br>` +
-                         `当前状态: ${status}<br>` +
-                         `当前时区: UTC${tzSign}${groupData.timezone}<br>` +
-                         `当前时间: ${currentTzTime}<br><br>` +
-                         `<b>指令:</b><br>` +
-                         `• <code>${mainPrefix}goodnight on/off</code> - 开启或关闭统计<br>` +
-                         `• <code>${mainPrefix}goodnight utc+8</code> - 设置时区<br>` +
+            const help = `🌙 <b>早晚安统计插件</b>\n\n` +
+                         `当前状态: ${status}\n` +
+                         `当前时区: UTC${tzSign}${groupData.timezone}\n` +
+                         `当前时间: ${currentTzTime}\n\n` +
+                         `<b>指令:</b>\n` +
+                         `• <code>${mainPrefix}goodnight on/off</code> - 开启或关闭统计\n` +
+                         `• <code>${mainPrefix}goodnight utc+8</code> - 设置时区\n` +
                          `• <code>${mainPrefix}goodnight</code> - 查看状态`;
             await msg.edit({ text: html(help) });
         }

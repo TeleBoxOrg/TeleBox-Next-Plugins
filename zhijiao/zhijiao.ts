@@ -1,7 +1,7 @@
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { htmlEscape } from "@utils/htmlEscape";
 import { randomInt } from "crypto";
 import { sleep } from "@utils/asyncHelpers";
@@ -93,7 +93,7 @@ function formatTossLine(index: number, toss?: TossResult): string {
 }
 
 class ZhijiaoPlugin extends Plugin {
-  description: string = `掷筊<br>强随机 使用 笅杯卦辞廿七句<br>${help_text}`;
+  description: string = `掷筊\n强随机 使用 笅杯卦辞廿七句\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

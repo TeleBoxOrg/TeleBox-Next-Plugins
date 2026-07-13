@@ -6,7 +6,7 @@ import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { getEntityWithHash } from "@utils/entityHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { TelegramClient, User } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
 
@@ -789,7 +789,7 @@ async function performLotteryDraw(client: TelegramClient, lottery: LotteryConfig
     const participants = getLotteryParticipants(lottery.id);
     
     if (participants.length === 0) {
-      await client.sendText(lottery.chat_id, html(`🎊 <b>开奖结果</b><br><br>🏆 <b>活动名称:</b> ${htmlEscape(lottery.title)}<br><br>😅 <b>很遗憾，没有用户参与抽奖</b><br>🙏 感谢大家的关注!`));
+      await client.sendText(lottery.chat_id, html(`🎊 <b>开奖结果</b>\n\n🏆 <b>活动名称:</b> ${htmlEscape(lottery.title)}\n\n😅 <b>很遗憾，没有用户参与抽奖</b>\n🙏 感谢大家的关注!`));
       
       // Mark lottery as completed
       const stmt = db.prepare(`UPDATE lottery_config SET status = 'completed' WHERE id = ?`);
@@ -869,7 +869,7 @@ async function performLotteryDraw(client: TelegramClient, lottery: LotteryConfig
     
   } catch (error: unknown) {
     logger.error("Failed to perform lottery draw:", error);
-    await client.sendText(lottery.chat_id, html(`❌ <b>开奖失败</b><br><br>发生错误，请稍后重试。`));
+    await client.sendText(lottery.chat_id, html(`❌ <b>开奖失败</b>\n\n发生错误，请稍后重试。`));
   }
 }
 
@@ -1161,7 +1161,7 @@ const lottery = async (msg: MessageContext) => {
         `);
 
         await msg.edit({
-          text: html("✅ <b>数据库初始化完成</b><br><br>已重建 lottery_winners 表结构，现在可以正常进行抽奖了。")
+          text: html("✅ <b>数据库初始化完成</b>\n\n已重建 lottery_winners 表结构，现在可以正常进行抽奖了。")
         });
         return;
       } catch (error: unknown) {
@@ -1183,14 +1183,14 @@ const lottery = async (msg: MessageContext) => {
       const isSavedMessages = chatId === String(msg.sender?.id);
       if (isSavedMessages && !isListCommand) {
         await msg.edit({
-          text: html(`❌ <b>错误:</b> 收藏夹中不能创建抽奖活动<br><br>💡 请在群组中创建抽奖活动`)
+          text: html(`❌ <b>错误:</b> 收藏夹中不能创建抽奖活动\n\n💡 请在群组中创建抽奖活动`)
         });
         return;
       }
       
       if (args.length < 2) {
         await msg.edit({
-          text: html(`❌ <b>参数不足</b><br><br><b>用法:</b> <code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code><br><br>💡 使用 <code>${mainPrefix}lottery create list</code> 查看可用仓库<br><br><b>示例:</b> <code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
+          text: html(`❌ <b>参数不足</b>\n\n<b>用法:</b> <code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code>\n\n💡 使用 <code>${mainPrefix}lottery create list</code> 查看可用仓库\n\n<b>示例:</b> <code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
         });
         return;
       }
@@ -1202,7 +1202,7 @@ const lottery = async (msg: MessageContext) => {
         
         if (warehouses.length === 0) {
           await msg.edit({
-            text: html(`📦 <b>奖品仓库列表</b><br><br>暂无可用的奖品仓库<br><br>💡 请先使用 <code>${mainPrefix}lottery prize create [仓库名]</code> 创建仓库并添加奖品`)
+            text: html(`📦 <b>奖品仓库列表</b>\n\n暂无可用的奖品仓库\n\n💡 请先使用 <code>${mainPrefix}lottery prize create [仓库名]</code> 创建仓库并添加奖品`)
           });
           return;
         }
@@ -1212,14 +1212,14 @@ const lottery = async (msg: MessageContext) => {
         ).join("\n");
 
         await msg.edit({
-          text: html(`📦 <b>可用奖品仓库</b><br><br>${warehouseList}<br><br><b>创建抽奖用法:</b><br><code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code><br><br><b>示例:</b><br><code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 1</code><br><code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
+          text: html(`📦 <b>可用奖品仓库</b>\n\n${warehouseList}\n\n<b>创建抽奖用法:</b>\n<code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code>\n\n<b>示例:</b>\n<code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 1</code>\n<code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
         });
         return;
       }
 
       if (args.length < 5) {
         await msg.edit({
-          text: html(`❌ <b>参数不足</b><br><br><b>用法:</b> <code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code><br><br>💡 使用 <code>${mainPrefix}lottery create list</code> 查看可用仓库<br><br><b>示例:</b> <code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
+          text: html(`❌ <b>参数不足</b>\n\n<b>用法:</b> <code>${mainPrefix}lottery create [标题] [关键词] [人数] [中奖数] [仓库名或序号]</code>\n\n💡 使用 <code>${mainPrefix}lottery create list</code> 查看可用仓库\n\n<b>示例:</b> <code>${mainPrefix}lottery create "新年抽奖" 抽奖 100 5 default</code>`)
         });
         return;
       }
@@ -1250,7 +1250,7 @@ const lottery = async (msg: MessageContext) => {
         ).join("\n");
         
         await msg.edit({
-          text: html(`❌ <b>错误:</b> 奖品仓库不存在<br><br>可用仓库:<br>${warehouseList}<br><br>💡 请使用正确的仓库名称或序号`)
+          text: html(`❌ <b>错误:</b> 奖品仓库不存在\n\n可用仓库:\n${warehouseList}\n\n💡 请使用正确的仓库名称或序号`)
         });
         return;
       }
@@ -1259,7 +1259,7 @@ const lottery = async (msg: MessageContext) => {
       const warehousePrizes = getWarehousePrizes(selectedWarehouse);
       if (warehousePrizes.length === 0) {
         await msg.edit({
-          text: html(`❌ <b>错误:</b> 仓库 ${codeTag(selectedWarehouse)} 中没有可用的奖品<br><br>💡 请先添加奖品或选择其他仓库`)
+          text: html(`❌ <b>错误:</b> 仓库 ${codeTag(selectedWarehouse)} 中没有可用的奖品\n\n💡 请先添加奖品或选择其他仓库`)
         });
         return;
       }
@@ -1267,7 +1267,7 @@ const lottery = async (msg: MessageContext) => {
       const existingLottery = getActiveLottery(chatId);
       if (existingLottery) {
         await msg.edit({
-          text: html(`❌ <b>错误:</b> 当前群组已有进行中的抽奖活动<br><br>💡 请先使用 <code>${mainPrefix}lottery draw</code> 开奖或取消当前活动`)
+          text: html(`❌ <b>错误:</b> 当前群组已有进行中的抽奖活动\n\n💡 请先使用 <code>${mainPrefix}lottery draw</code> 开奖或取消当前活动`)
         });
         return;
       }
@@ -1349,13 +1349,13 @@ const lottery = async (msg: MessageContext) => {
       
       if (!isCreator && !isAdmin) {
         await msg.edit({
-          text: html(`❌ <b>权限不足</b><br><br>只有抽奖创建者或群组管理员可以手动开奖`)
+          text: html(`❌ <b>权限不足</b>\n\n只有抽奖创建者或群组管理员可以手动开奖`)
         });
         return;
       }
 
       await msg.edit({
-        text: html(`🔄 <b>开奖中...</b><br><br>正在为 "${htmlEscape(activeLottery.title)}" 进行开奖`)
+        text: html(`🔄 <b>开奖中...</b>\n\n正在为 "${htmlEscape(activeLottery.title)}" 进行开奖`)
       });
 
       await performLotteryDraw(client, activeLottery);
@@ -1379,7 +1379,7 @@ const lottery = async (msg: MessageContext) => {
       
       if (!isCreator && !isAdmin) {
         await msg.edit({
-          text: html(`❌ <b>权限不足</b><br><br>只有抽奖创建者或群组管理员可以删除活动`)
+          text: html(`❌ <b>权限不足</b>\n\n只有抽奖创建者或群组管理员可以删除活动`)
         });
         return;
       }
@@ -1390,7 +1390,7 @@ const lottery = async (msg: MessageContext) => {
       
       if (success) {
         await msg.edit({
-          text: html(`✅ <b>删除成功</b><br><br>抽奖活动 "${htmlEscape(activeLottery.title)}" 已被强制删除<br><br>📝 所有相关数据已清除`)
+          text: html(`✅ <b>删除成功</b>\n\n抽奖活动 "${htmlEscape(activeLottery.title)}" 已被强制删除\n\n📝 所有相关数据已清除`)
         });
       } else {
         await msg.edit({
@@ -1407,7 +1407,7 @@ const lottery = async (msg: MessageContext) => {
       const activeLottery = getActiveLottery(chatId);
       if (!activeLottery) {
         await msg.edit({
-          text: html(`📋 <b>抽奖状态</b><br><br>当前群组没有进行中的抽奖活动`)
+          text: html(`📋 <b>抽奖状态</b>\n\n当前群组没有进行中的抽奖活动`)
         });
         return;
       }
@@ -1437,7 +1437,7 @@ const lottery = async (msg: MessageContext) => {
       
       if (!isPrivateChat) {
         await msg.edit({
-          text: html(`🔒 <b>权限限制</b><br><br>奖品仓库管理只能在私聊或收藏夹中进行<br><br>💡 请私聊机器人或在收藏夹中使用此功能`)
+          text: html(`🔒 <b>权限限制</b>\n\n奖品仓库管理只能在私聊或收藏夹中进行\n\n💡 请私聊机器人或在收藏夹中使用此功能`)
         });
         return;
       }
@@ -1453,11 +1453,11 @@ const lottery = async (msg: MessageContext) => {
         
         if (isCreated) {
           await msg.edit({
-            text: html(`✅ <b>奖品仓库已创建</b><br><br>仓库名称: ${codeTag(warehouseName)}`)
+            text: html(`✅ <b>奖品仓库已创建</b>\n\n仓库名称: ${codeTag(warehouseName)}`)
           });
         } else {
           await msg.edit({
-            text: html(`⚠️ <b>仓库已存在</b><br><br>仓库 ${codeTag(warehouseName)} 已经存在，无需重复创建<br><br>💡 可以使用 <code>${mainPrefix}lottery prize add ${warehouseName} [奖品内容] [数量]</code> 添加奖品`)
+            text: html(`⚠️ <b>仓库已存在</b>\n\n仓库 ${codeTag(warehouseName)} 已经存在，无需重复创建\n\n💡 可以使用 <code>${mainPrefix}lottery prize add ${warehouseName} [奖品内容] [数量]</code> 添加奖品`)
           });
         }
         return;
@@ -1471,7 +1471,7 @@ const lottery = async (msg: MessageContext) => {
         
         if (!match) {
           await msg.edit({
-            text: html(`❌ <b>错误:</b> 参数格式错误<br><br><b>用法:</b> <code>${mainPrefix}lottery prize add [仓库名] [奖品内容] [数量]</code>`)
+            text: html(`❌ <b>错误:</b> 参数格式错误\n\n<b>用法:</b> <code>${mainPrefix}lottery prize add [仓库名] [奖品内容] [数量]</code>`)
           });
           return;
         }
@@ -1484,7 +1484,7 @@ const lottery = async (msg: MessageContext) => {
         
         addPrizeToWarehouse(warehouseName, prizeText, stock);
         await msg.edit({
-          text: html(`✅ <b>奖品已添加</b><br><br>仓库: ${codeTag(warehouseName)}<br>奖品: ${htmlEscape(prizeText)}<br>数量: ${stock}`)
+          text: html(`✅ <b>奖品已添加</b>\n\n仓库: ${codeTag(warehouseName)}\n奖品: ${htmlEscape(prizeText)}\n数量: ${stock}`)
         });
         return;
       }
@@ -1498,7 +1498,7 @@ const lottery = async (msg: MessageContext) => {
         
         if (prizes.length === 0) {
           await msg.edit({
-            text: html(`📦 <b>奖品仓库</b><br><br>仓库 ${codeTag(warehouseName)} 暂无奖品`)
+            text: html(`📦 <b>奖品仓库</b>\n\n仓库 ${codeTag(warehouseName)} 暂无奖品`)
           });
           return;
         }
@@ -1508,7 +1508,7 @@ const lottery = async (msg: MessageContext) => {
         ).join("\n");
 
         await msg.edit({
-          text: html(`📦 <b>奖品仓库: ${htmlEscape(warehouseName)}</b><br><br>${prizeList}`)
+          text: html(`📦 <b>奖品仓库: ${htmlEscape(warehouseName)}</b>\n\n${prizeList}`)
         });
         return;
       }
@@ -1518,7 +1518,7 @@ const lottery = async (msg: MessageContext) => {
         
         if (!target) {
           await msg.edit({
-            text: html(`❌ <b>错误:</b> 参数不足<br><br><b>用法:</b><br><code>${mainPrefix}lottery prize clear [仓库名]</code> - 清空指定仓库<br><code>${mainPrefix}lottery prize clear all</code> - 清空所有仓库`)
+            text: html(`❌ <b>错误:</b> 参数不足\n\n<b>用法:</b>\n<code>${mainPrefix}lottery prize clear [仓库名]</code> - 清空指定仓库\n<code>${mainPrefix}lottery prize clear all</code> - 清空所有仓库`)
           });
           return;
         }
@@ -1528,13 +1528,13 @@ const lottery = async (msg: MessageContext) => {
         if (target.toLowerCase() === "all") {
           const deletedCount = clearAllWarehouses();
           await msg.edit({
-            text: html(`✅ <b>清空完成</b><br><br>已清空所有奖品仓库<br>删除了 ${deletedCount} 个奖品`)
+            text: html(`✅ <b>清空完成</b>\n\n已清空所有奖品仓库\n删除了 ${deletedCount} 个奖品`)
           });
         } else {
           const deletedCount = clearWarehouse(target);
           if (deletedCount > 0) {
             await msg.edit({
-              text: html(`✅ <b>清空完成</b><br><br>仓库 ${codeTag(target)} 已清空<br>删除了 ${deletedCount} 个奖品`)
+              text: html(`✅ <b>清空完成</b>\n\n仓库 ${codeTag(target)} 已清空\n删除了 ${deletedCount} 个奖品`)
             });
           } else {
             await msg.edit({
@@ -1561,7 +1561,7 @@ const lottery = async (msg: MessageContext) => {
       const winners = getLotteryWinners(activeLottery.id);
       if (winners.length === 0) {
         await msg.edit({
-          text: html(`🏆 <b>中奖名单</b><br><br>暂无中奖用户`)
+          text: html(`🏆 <b>中奖名单</b>\n\n暂无中奖用户`)
         });
         return;
       }
@@ -1576,7 +1576,7 @@ const lottery = async (msg: MessageContext) => {
       }).join("\n");
 
       await msg.edit({
-        text: html(`🏆 <b>中奖名单</b><br><br>${winnerList}<br><br>✅ 已发放 | ⏳ 待领取 | ❌ 已过期`)
+        text: html(`🏆 <b>中奖名单</b>\n\n${winnerList}\n\n✅ 已发放 | ⏳ 待领取 | ❌ 已过期`)
       });
       return;
     }
@@ -1598,7 +1598,7 @@ const lottery = async (msg: MessageContext) => {
       
       if (currentCount === 0) {
         await msg.edit({
-          text: html(`👥 <b>参与名单</b><br><br>🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}<br>📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人<br><br>暂无参与用户`)
+          text: html(`👥 <b>参与名单</b>\n\n🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}\n📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人\n\n暂无参与用户`)
         });
         return;
       }
@@ -1621,7 +1621,7 @@ const lottery = async (msg: MessageContext) => {
           const fileName = `参与名单_${activeLottery.title}_${new Date().toISOString().slice(0, 10)}.txt`;
           
           await msg.edit({
-            text: html(`👥 <b>参与名单</b><br><br>🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}<br>📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人<br><br>📄 <b>参与用户过多，已生成文件发送</b>`)
+            text: html(`👥 <b>参与名单</b>\n\n🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}\n📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人\n\n📄 <b>参与用户过多，已生成文件发送</b>`)
           });
 
           // Send as file - use simpler approach
@@ -1629,7 +1629,7 @@ const lottery = async (msg: MessageContext) => {
             type: "document",
             file: txtContent,
             fileName,
-            caption: html(`📋 <b>完整参与名单</b><br><br>🎯 活动: ${htmlEscape(activeLottery.title)}<br>👥 总计: ${currentCount} 人`)
+            caption: html(`📋 <b>完整参与名单</b>\n\n🎯 活动: ${htmlEscape(activeLottery.title)}\n👥 总计: ${currentCount} 人`)
           });
         } catch (error: unknown) {
           logger.error("Failed to send participants file:", error);
@@ -1641,13 +1641,13 @@ const lottery = async (msg: MessageContext) => {
           }).join("\n");
           
           await msg.edit({
-            text: html(`👥 <b>参与名单</b><br><br>🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}<br>📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人<br><br>${displayList}<br><br>... 还有 ${currentCount - 30} 人（文件发送失败，仅显示前30人）`)
+            text: html(`👥 <b>参与名单</b>\n\n🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}\n📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人\n\n${displayList}\n\n... 还有 ${currentCount - 30} 人（文件发送失败，仅显示前30人）`)
           });
         }
       } else {
         // Send as regular message
         await msg.edit({
-          text: html(`👥 <b>参与名单</b><br><br>🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}<br>📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人<br><br>${fullList.split('<br>').map(line => htmlEscape(line)).join('<br>')}`)
+          text: html(`👥 <b>参与名单</b>\n\n🎯 <b>活动:</b> ${htmlEscape(activeLottery.title)}\n📊 <b>进度:</b> ${currentCount}/${activeLottery.max_participants} 人\n\n${fullList.split('\n').map(line => htmlEscape(line)).join("\n")}`)
         });
       }
       return;
@@ -1657,7 +1657,7 @@ const lottery = async (msg: MessageContext) => {
     if (sub === "claim") {
       if (args.length < 2) {
         await msg.edit({
-          text: html(`❌ <b>错误:</b> 参数错误<br><br>用法: <code>${mainPrefix}lottery claim [用户ID或@用户名]</code>`)
+          text: html(`❌ <b>错误:</b> 参数错误\n\n用法: <code>${mainPrefix}lottery claim [用户ID或@用户名]</code>`)
         });
         return;
       }
@@ -1692,7 +1692,7 @@ const lottery = async (msg: MessageContext) => {
       const success = updateWinnerStatusByUser(activeLottery.id, targetUserId, PrizeStatus.SENT);
       if (success) {
         await msg.edit({
-          text: html(`✅ <b>操作成功</b><br><br>已将用户标记为已领奖`)
+          text: html(`✅ <b>操作成功</b>\n\n已将用户标记为已领奖`)
         });
       } else {
         await msg.edit({
@@ -1716,7 +1716,7 @@ const lottery = async (msg: MessageContext) => {
 
       const expiredCount = expireOldClaims();
       await msg.edit({
-        text: html(`✅ <b>过期处理完成</b><br><br>已处理 ${expiredCount} 个过期未领奖品`)
+        text: html(`✅ <b>过期处理完成</b>\n\n已处理 ${expiredCount} 个过期未领奖品`)
       });
       return;
     }

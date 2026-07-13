@@ -5,7 +5,7 @@ import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteMessageContext } from "@utils/mtcuteTypes";
 import type { User, Chat } from "@mtcute/node";
-import { html, thtml } from "@mtcute/html-parser";
+import { thtml as html, thtml } from "@mtcute/html-parser";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { cronManager } from "@utils/cronManager";
 import * as cron from "cron";
@@ -276,7 +276,7 @@ const help_text = [
 
 class KittPlugin extends Plugin {
 
-  description: string = `<br>K.I.T.T <blockquote>As you wish, Michael.</blockquote><br><br>使用 JavaScript 的高级触发器: 匹配 -> 执行, 高度自定义, 逻辑自由<br><br>${help_text}`;
+  description: string = `\nK.I.T.T <blockquote>As you wish, Michael.</blockquote>\n\n使用 JavaScript 的高级触发器: 匹配 -> 执行, 高度自定义, 逻辑自由\n\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

@@ -1,5 +1,5 @@
 // plugins/sendat.ts
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { Plugin, type PluginRuntimeContext } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import { getGlobalClient } from "@utils/runtimeManager";
@@ -535,10 +535,10 @@ seconds, minutes, hours, date, times`;
       return;
     }
 
-    let response = showAll ? "📋 <b>所有任务：</b><br><br>" : "📋 <b>我的任务：</b><br><br>";
+    let response = showAll ? "📋 <b>所有任务：</b>\n\n" : "📋 <b>我的任务：</b>\n\n";
     
     tasks.forEach(task => {
-      response += `• ${task.getDescription()}<br><br>`;
+      response += `• ${task.getDescription()}\n\n`;
     });
 
     await msg.edit({ text: html(response) });
@@ -637,7 +637,7 @@ seconds, minutes, hours, date, times`;
       await this.taskManager.addTask(task);
       
       await msg.edit({ 
-        text: html(`✅ <b>已添加任务 #${task.task_id}</b><br><br>${task.getDescription()}`)
+        text: html(`✅ <b>已添加任务 #${task.task_id}</b>\n\n${task.getDescription()}`)
       });
     } catch (error: unknown) {
       throw new Error(`添加任务失败: ${getErrorMessage(error)}`);

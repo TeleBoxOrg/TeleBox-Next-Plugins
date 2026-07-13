@@ -1,7 +1,7 @@
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { cronManager } from "@utils/cronManager";
 import * as cron from "cron";
@@ -926,7 +926,7 @@ const help_text = `▎群消息总结
 
 class SummaryPlugin extends Plugin {
 
-  description: string = `群消息总结插件<br><br>${help_text}`;
+  description: string = `群消息总结插件\n\n${help_text}`;
 
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     sum: async (msg: MessageContext) => {
@@ -1020,7 +1020,7 @@ class SummaryPlugin extends Plugin {
           lines.push("💡 使用方法：");
           lines.push(`<code>${mainPrefix}sum config set prompt 您的提示词</code>`);
 
-          await msg.edit({ text: html(lines.join("<br>"))});
+          await msg.edit({ text: html(lines.join("\n"))});
           return;
         }
 
@@ -1045,7 +1045,7 @@ class SummaryPlugin extends Plugin {
             : formattedText;
 
           await msg.edit({
-            text: html(`📋 发送给 AI 的文本预览（最后2000字符）：<br><br>${codeTag(preview)}`)});
+            text: html(`📋 发送给 AI 的文本预览（最后2000字符）：\n\n${codeTag(preview)}`)});
           return;
         }
 
@@ -1181,14 +1181,14 @@ class SummaryPlugin extends Plugin {
 
           if (!chatIdInput || !intervalInput) {
             await msg.edit({
-              text: html(`❌ 格式错误<br><br>用法: <code>${mainPrefix}sum add &lt;群组标识&gt; &lt;间隔&gt; [消息数] [选项]</code><br><br>群组标识支持:<br>• 数字ID: -1001234567890<br>• 链接: t.me/groupname<br>• 用户名: @groupname<br><br>示例: <code>${mainPrefix}sum add -1001234567890 2h</code>`)});
+              text: html(`❌ 格式错误\n\n用法: <code>${mainPrefix}sum add &lt;群组标识&gt; &lt;间隔&gt; [消息数] [选项]</code>\n\n群组标识支持:\n• 数字ID: -1001234567890\n• 链接: t.me/groupname\n• 用户名: @groupname\n\n示例: <code>${mainPrefix}sum add -1001234567890 2h</code>`)});
             return;
           }
 
           const cronExpr = parseInterval(intervalInput);
           if (!cronExpr) {
             await msg.edit({
-              text: html(`❌ 无效的间隔格式<br><br>支持格式:<br>• 简化: 2h (2小时), 30m (30分钟)<br>• Cron(6字段): 0 0 9,15,21 * * * (每天9:00,15:00,21:00)<br>• Cron(5字段): 30 */2 * * * (自动补秒字段)`)});
+              text: html(`❌ 无效的间隔格式\n\n支持格式:\n• 简化: 2h (2小时), 30m (30分钟)\n• Cron(6字段): 0 0 9,15,21 * * * (每天9:00,15:00,21:00)\n• Cron(5字段): 30 */2 * * * (自动补秒字段)`)});
             return;
           }
 
@@ -1331,7 +1331,7 @@ class SummaryPlugin extends Plugin {
             lines.push("");
           }
 
-          await msg.edit({ text: html(lines.join("<br>"))});
+          await msg.edit({ text: html(lines.join("\n"))});
           return;
         }
 
@@ -1402,7 +1402,7 @@ class SummaryPlugin extends Plugin {
 
           if (!id || !prop) {
             await msg.edit({
-              text: html(`❌ 格式错误<br><br>用法: <code>${mainPrefix}sum edit &lt;任务ID&gt; &lt;属性&gt; &lt;值&gt;</code><br><br>支持的属性:<br>• spoiler - 折叠显示 (on/off)<br>• provider - AI配置名称<br>• prompt - AI提示词 (留空使用全局配置)`)});
+              text: html(`❌ 格式错误\n\n用法: <code>${mainPrefix}sum edit &lt;任务ID&gt; &lt;属性&gt; &lt;值&gt;</code>\n\n支持的属性:\n• spoiler - 折叠显示 (on/off)\n• provider - AI配置名称\n• prompt - AI提示词 (留空使用全局配置)`)});
             return;
           }
 
@@ -1459,7 +1459,7 @@ class SummaryPlugin extends Plugin {
               await msg.edit({ text: html(`✅ 已设置任务 ${codeTag(id)} 的提示词`)});
             }
           } else {
-              await msg.edit({ text: html(`❌ 未知属性: ${codeTag(prop)}<br>支持: spoiler/provider/prompt`)});
+              await msg.edit({ text: html(`❌ 未知属性: ${codeTag(prop)}\n支持: spoiler/provider/prompt`)});
           }
           return;
         }
@@ -1524,7 +1524,7 @@ class SummaryPlugin extends Plugin {
 
           const mapping = oldIds.map((old, i) => `${htmlEscape(old)} → ${i + 1}`).join(", ");
           await msg.edit({
-            text: html(`✅ 已重新排序 ${db.data.tasks.length} 个任务<br><br>${mapping}`)});
+            text: html(`✅ 已重新排序 ${db.data.tasks.length} 个任务\n\n${mapping}`)});
           return;
         }
 
@@ -1565,7 +1565,7 @@ class SummaryPlugin extends Plugin {
             lines.push(`回复模式: ${cfg.reply_mode !== false ? "开启" : "关闭"}`);
             lines.push(`最大输出: ${cfg.max_output_length ? `${cfg.max_output_length}字符` : "不限制（默认）"}`);
 
-            await msg.edit({ text: html(lines.join("<br>"))});
+            await msg.edit({ text: html(lines.join("\n"))});
             return;
           }
 
@@ -1573,7 +1573,7 @@ class SummaryPlugin extends Plugin {
             const name = args[1];
             if (!name) {
               await msg.edit({
-                text: html(`❌ 请提供配置名称<br>用法1（官方）: <code>${mainPrefix}sum config add openai sk-xxx</code><br>用法2（自定义）: <code>${mainPrefix}sum config add myai openai https://api.example.com my-model</code>`)});
+                text: html(`❌ 请提供配置名称\n用法1（官方）: <code>${mainPrefix}sum config add openai sk-xxx</code>\n用法2（自定义）: <code>${mainPrefix}sum config add myai openai https://api.example.com my-model</code>`)});
               return;
             }
 
@@ -1587,7 +1587,7 @@ class SummaryPlugin extends Plugin {
 
               if (!apiKey) {
                 await msg.edit({
-                  text: html(`❌ 请提供 API Key<br>用法: <code>${mainPrefix}sum config add ${htmlEscape(key)} YOUR_API_KEY</code>`)});
+                  text: html(`❌ 请提供 API Key\n用法: <code>${mainPrefix}sum config add ${htmlEscape(key)} YOUR_API_KEY</code>`)});
                 return;
               }
 
@@ -1599,7 +1599,7 @@ class SummaryPlugin extends Plugin {
               await db.write();
 
               await msg.edit({
-                text: html(`✅ 已配置官方 <b>${htmlEscape(officialPreset.name)}</b><br>默认模型: ${codeTag(officialPreset.model)}<br>可用命令: <code>${mainPrefix}sum config set ${htmlEscape(key)} model ...</code> / <code>url ...</code>`)});
+                text: html(`✅ 已配置官方 <b>${htmlEscape(officialPreset.name)}</b>\n默认模型: ${codeTag(officialPreset.model)}\n可用命令: <code>${mainPrefix}sum config set ${htmlEscape(key)} model ...</code> / <code>url ...</code>`)});
               return;
             }
 
@@ -1609,7 +1609,7 @@ class SummaryPlugin extends Plugin {
 
             if (!type || !baseUrl || !model) {
               await msg.edit({
-                text: html(`❌ 格式错误<br><br>自定义用法: <code>${mainPrefix}sum config add &lt;名称&gt; &lt;类型&gt; &lt;BaseURL&gt; &lt;Model&gt;</code><br>示例: <code>${mainPrefix}sum config add deepseek openai https://api.deepseek.com deepseek-chat</code>`)});
+                text: html(`❌ 格式错误\n\n自定义用法: <code>${mainPrefix}sum config add &lt;名称&gt; &lt;类型&gt; &lt;BaseURL&gt; &lt;Model&gt;</code>\n示例: <code>${mainPrefix}sum config add deepseek openai https://api.deepseek.com deepseek-chat</code>`)});
               return;
             }
 
@@ -1629,7 +1629,7 @@ class SummaryPlugin extends Plugin {
             await db.write();
 
             await msg.edit({
-              text: html(`✅ 已添加配置 ${codeTag(key)}<br><br>请使用以下命令设置 API Key:<br><code>${mainPrefix}sum config set ${htmlEscape(key)} key YOUR_API_KEY</code>`)});
+              text: html(`✅ 已添加配置 ${codeTag(key)}\n\n请使用以下命令设置 API Key:\n<code>${mainPrefix}sum config set ${htmlEscape(key)} key YOUR_API_KEY</code>`)});
             return;
           }
 

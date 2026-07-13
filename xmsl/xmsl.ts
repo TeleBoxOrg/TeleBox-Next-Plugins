@@ -3,7 +3,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import { htmlEscape } from "@utils/htmlEscape";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { Message, Photo, Document } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import axios from 'axios';
 import { createDirectoryInAssets, createDirectoryInTemp } from '@utils/pathHelpers';
 import * as path from 'path';
@@ -452,14 +452,14 @@ class XMSLPlugin extends Plugin {
 							const mimeType = doc.mimeType;
 							if (mimeType === TGS_MIME) {
 								await msg.edit({
-									text: html`❌ TGS 贴纸转换失败<br><br>
+									text: html`❌ TGS 贴纸转换失败\n\n
 						需要安装: <code>pip3 install rlottie-python</code> 和 <code>ffmpeg</code>`,
 								});
 								return;
 							}
 							if (mimeType === WEBM_MIME) {
 								await msg.edit({
-									text: html`❌ WebM 贴纸转换失败<br><br>
+									text: html`❌ WebM 贴纸转换失败\n\n
 						需要安装: <code>ffmpeg</code>`,
 								});
 								return;
@@ -502,7 +502,7 @@ class XMSLPlugin extends Plugin {
 	private async handleSet(msg: MessageContext, args: string[]) {
 		if (args.length < 2) {
 			await msg.edit({
-				text: html`❌ 参数错误<br>使用: <code>${mainPrefix}xm set [key] [value]</code>`,
+				text: html`❌ 参数错误\n使用: <code>${mainPrefix}xm set [key] [value]</code>`,
 			});
 			return;
 		}
@@ -536,7 +536,7 @@ class XMSLPlugin extends Plugin {
 
 				default:
 					await msg.edit({
-						text: html`❌ 未知配置项<br><br>
+						text: html`❌ 未知配置项\n\n
 支持: mode, key, url, model`,
 					});
 					return;
@@ -555,26 +555,26 @@ class XMSLPlugin extends Plugin {
 
 	private async showStatus(msg: MessageContext) {
 		const modeEmoji = this.config.apiMode === 'gemini' ? '🔵' : '🟠';
-		const statusText = html`🧠 <b>XMSL 状态</b><br><br>
-<br><br>
-${modeEmoji} 模式: ${this.config.apiMode}<br>
-🔑 密钥: ${this.config.apiKey ? '✅ 已设置' : '❌ 未设置'}<br>
-📍 地址: ${this.config.baseUrl.replace(/\/$/, '')}<br>
-🤖 模型: ${this.config.model}<br>
-<br>
+		const statusText = html`🧠 <b>XMSL 状态</b>\n\n
+\n\n
+${modeEmoji} 模式: ${this.config.apiMode}\n
+🔑 密钥: ${this.config.apiKey ? '✅ 已设置' : '❌ 未设置'}\n
+📍 地址: ${this.config.baseUrl.replace(/\/$/, '')}\n
+🤖 模型: ${this.config.model}\n
+\n
 使用  查看帮助`;
 
 		await msg.edit({ text: statusText });
 	}
 
 	private async showConfig(msg: MessageContext) {
-		const configText = html`<b>⚙️ 配置信息</b><br><br>
-<br><br>
-mode: ${this.config.apiMode}<br>
-key: ${this.config.apiKey ? '✅ 已设置' : '❌ 未设置'}<br>
-url: <code>${this.config.baseUrl.replace(/\/$/, '')}</code><br>
-model: <code>${this.config.model}</code><br>
-<br>
+		const configText = html`<b>⚙️ 配置信息</b>\n\n
+\n\n
+mode: ${this.config.apiMode}\n
+key: ${this.config.apiKey ? '✅ 已设置' : '❌ 未设置'}\n
+url: <code>${this.config.baseUrl.replace(/\/$/, '')}</code>\n
+model: <code>${this.config.model}</code>\n
+\n
 使用 <code>${mainPrefix}xm set [key] [value]</code> 修改配置`;
 
 		await msg.edit({ text: configText });
@@ -583,14 +583,14 @@ model: <code>${this.config.model}</code><br>
 	private async askAI(msg: MessageContext, question: string, imageInfo?: MediaInfo) {
 		if (!this.config.apiKey) {
 			await msg.edit({
-				text: html`❌ 未设置 API 密钥<br>使用: <code>${mainPrefix}xm set key [你的密钥]</code>`,
+				text: html`❌ 未设置 API 密钥\n使用: <code>${mainPrefix}xm set key [你的密钥]</code>`,
 			});
 			return;
 		}
 
 		if (!this.config.model) {
 			await msg.edit({
-				text: html`❌ 未设置模型<br>使用: <code>${mainPrefix}xm set model [模型名]</code>`,
+				text: html`❌ 未设置模型\n使用: <code>${mainPrefix}xm set model [模型名]</code>`,
 			});
 			return;
 		}
@@ -616,14 +616,14 @@ model: <code>${this.config.model}</code><br>
 			// 检查token数量
 			const estimatedTokens = Math.ceil(answer.length / 4);
 			if (estimatedTokens > MAX_RESPONSE_TOKENS) {
-				answer = `⚠️ 回复过长(${estimatedTokens} tokens, 超过限制${MAX_RESPONSE_TOKENS})<br><br>${answer.substring(
+				answer = `⚠️ 回复过长(${estimatedTokens} tokens, 超过限制${MAX_RESPONSE_TOKENS})\n\n${answer.substring(
 					0,
 					1000
 				)}...`;
 			}
 
 			await msg.edit({
-				text: html(answer.replace(/\n/g, '<br>')),
+				text: html(answer.replace(/\n/g, "\n")),
 			});
 		} catch (error: unknown) {
 			logger.error('[xmsl] API Error:', error);

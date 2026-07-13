@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteFileDownloadLocation } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -63,7 +63,7 @@ const helpText = `⚙️ <b>OpenList 管理插件</b>
 
 class OpenListPlugin extends Plugin {
 
-  description: string = `<br>OpenList 管理<br><br>${helpText}`;
+  description: string = `\nOpenList 管理\n\n${helpText}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     openlist: async (msg: MessageContext) => {
       await this.handleCommand(msg);
@@ -272,7 +272,7 @@ class OpenListPlugin extends Plugin {
         lines.push(`账号: ${username}`);
         lines.push(`密码: ${password}`);
       }
-      await msg.edit({ text: lines.join("<br>") });
+      await msg.edit({ text: lines.join("\n") });
     } catch (error: unknown) {
       await msg.edit({ text: `安装失败: ${htmlEscape(getErrorMessage(error))}` });
     }
@@ -816,7 +816,7 @@ class OpenListPlugin extends Plugin {
         }
       }
 
-      await msg.edit({ text: lines.join("<br>") });
+      await msg.edit({ text: lines.join("\n") });
     } catch (error: unknown) {
       await msg.edit({ text: `状态获取失败: ${htmlEscape(getErrorMessage(error))}` });
     }

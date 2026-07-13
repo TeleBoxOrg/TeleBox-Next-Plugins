@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getErrorMessage } from "@utils/errorHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import axios from "axios";
 import { htmlEscape } from "@utils/htmlEscape";
 
@@ -163,7 +163,7 @@ class HitokotoPlugin extends Plugin {
 
     // 构建最终消息
     const finalText = sourceInfo 
-      ? `💬 ${htmlEscape(hitokotoData.hitokoto)}<br><br>📚 ${sourceInfo}`
+      ? `💬 ${htmlEscape(hitokotoData.hitokoto)}\n\n📚 ${sourceInfo}`
       : `💬 ${htmlEscape(hitokotoData.hitokoto)}`;
 
     // 编辑消息显示结果

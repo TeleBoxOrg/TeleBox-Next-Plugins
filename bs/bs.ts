@@ -176,7 +176,7 @@ function escapeHtml(text: string): string {
         return ch;
     }
   });
-  return escaped.replace(/\n/g, "<br>");
+  return escaped.replace(/\n/g, "\n");
 }
 
 function escapeAttribute(text: string): string {
@@ -684,7 +684,7 @@ async function sendTargetFeedback(options: {
       : undefined;
 
     try {
-      await client.sendText(success.entity, textParts.filter(Boolean).join("<br>"), {
+      await client.sendText(success.entity, textParts.filter(Boolean).join("\n"), {
         linkPreview: false,
         replyTo: replyToMsgId,
         topMsgId,
@@ -821,7 +821,7 @@ class BsPlugin extends Plugin {
           } catch (error: unknown) {
             const message = htmlEscape(getRpcErrorMessage(error));
             await msg.edit({
-              text: `❌ <b>保送失败</b>${message ? `<br>${message}` : ""}`,
+              text: `❌ <b>保送失败</b>${message ? `\n${message}` : ""}`,
               linkPreview: false,
             });
             return;

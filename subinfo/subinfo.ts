@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import axios from "axios";
 import * as yaml from "js-yaml";
@@ -671,7 +671,7 @@ class SubinfoPlugin extends Plugin {
 
     if (!sourceText) {
        await msg.edit({
-        text: html`❌ <b>无效的参数</b><br><br>💡 使用方法：<br>• <code>${mainPrefix}cha [订阅链接]</code> - 查询订阅链接<br>• <code>${mainPrefix}cha txt [订阅链接]</code> - **以TXT文件输出**<br>• 回复包含链接的消息并发送 <code>${mainPrefix}cha</code> 或 <code>${mainPrefix}cha txt</code>`,
+        text: html`❌ <b>无效的参数</b>\n\n💡 使用方法：\n• <code>${mainPrefix}cha [订阅链接]</code> - 查询订阅链接\n• <code>${mainPrefix}cha txt [订阅链接]</code> - **以TXT文件输出**\n• 回复包含链接的消息并发送 <code>${mainPrefix}cha</code> 或 <code>${mainPrefix}cha txt</code>`,
        });
        return;
     }

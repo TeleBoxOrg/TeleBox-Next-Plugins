@@ -4,7 +4,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { User, Chat } from "@mtcute/node";
 import type { MtcuteLong } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { safeGetMessages } from "@utils/safeGetMessages";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
@@ -353,7 +353,7 @@ async function findUserFromGroups(
 
 class IsAlivePlugin extends Plugin {
 
-  description: string = `\<br>isalive\<br>\<br>${help_text}`;
+  description: string = `\\nisalive\\n\\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
@@ -371,7 +371,7 @@ class IsAlivePlugin extends Plugin {
 
         if (!input) {
           await msg.edit({
-            text: html(`Missing parameter.<br><br>${help_text}`),
+            text: html(`Missing parameter.\n\n${help_text}`),
           });
           return;
         }
@@ -402,7 +402,7 @@ class IsAlivePlugin extends Plugin {
           }
         } catch (error: unknown) {
           await msg.edit({
-            text: html`❌ 无法解析用户: ${htmlEscape(getErrorMessage(error))}<br><i>提示: 使用 UID 查询需要你与该用户有过交互（私聊、同群等）</i>`,
+            text: html`❌ 无法解析用户: ${htmlEscape(getErrorMessage(error))}\n<i>提示: 使用 UID 查询需要你与该用户有过交互（私聊、同群等）</i>`,
           });
           return;
         }
@@ -512,7 +512,7 @@ class IsAlivePlugin extends Plugin {
         }
 
         await msg.edit({
-          text: html(lines.join("<br>")),
+          text: html(lines.join("\n")),
         });
       },
     };

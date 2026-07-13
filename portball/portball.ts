@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteInputChannel, MtcuteInputPeer } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
@@ -149,7 +149,7 @@ class PortballPlugin extends Plugin {
         }
       } else {
         await msg.edit({
-          text: html("❌ <b>错误：</b>参数不足<br><br>" + this.helpText)
+          text: html("❌ <b>错误：</b>参数不足\n\n" + this.helpText)
         });
         await this.autoDelete(msg, 5);
         return;
@@ -191,7 +191,7 @@ class PortballPlugin extends Plugin {
         });
 
         // 构建成功消息
-        let resultText = `🔇 <b>禁言成功</b><br><br>`;
+        let resultText = `🔇 <b>禁言成功</b>\n\n`;
         
         // 获取用户名
         let userName = "";
@@ -209,14 +209,14 @@ class PortballPlugin extends Plugin {
           userName = `用户 ${String(senderRaw.id)}`;
         }
 
-        resultText += `• <b>用户：</b>${htmlEscape(userName)}<br>`;
-        resultText += `• <b>时长：</b>${seconds}秒<br>`;
+        resultText += `• <b>用户：</b>${htmlEscape(userName)}\n`;
+        resultText += `• <b>时长：</b>${seconds}秒\n`;
         
         if (reason) {
-          resultText += `• <b>理由：</b>${htmlEscape(reason)}<br>`;
+          resultText += `• <b>理由：</b>${htmlEscape(reason)}\n`;
         }
         
-        resultText += `<br>⏰ 到期自动解除`;
+        resultText += `\n⏰ 到期自动解除`;
 
         // 发送成功消息
         await client.sendText(msg.chat.id, html(resultText));

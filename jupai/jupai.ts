@@ -2,7 +2,7 @@ import axios from "axios";
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { logger } from "@utils/logger";
@@ -26,7 +26,7 @@ const help_text = `
 `;
 
 class JuPaiPlugin extends Plugin {
-  description: string = `<br>举牌小人<br><br>${help_text}`;
+  description: string = `\n举牌小人\n\n${help_text}`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     jupai: async (msg: MessageContext) => {

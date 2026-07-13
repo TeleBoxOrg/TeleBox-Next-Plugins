@@ -1,7 +1,7 @@
 // zpr Plugin - 随机纸片人插件
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient, tryGetCurrentGenerationContext } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -364,7 +364,7 @@ async function downloadSingleImage(
                         mediaGroup: {
                             type: 'photo',
                             media: filePath,
-                            caption: `<b>🎨 ${htmlEscape(title)}</b><br><br>🆔 <b>作品ID:</b> <a href="https://www.pixiv.net/artworks/${pid}">${pid}</a><br>🔗 <b>原图:</b> <a href="${htmlEscape(urls.original)}">高清查看</a><br>📐 <b>尺寸:</b> <code>${width}×${height}</code><br><br><i>📡 来源: Pixiv</i>`,
+                            caption: `<b>🎨 ${htmlEscape(title)}</b>\n\n🆔 <b>作品ID:</b> <a href="https://www.pixiv.net/artworks/${pid}">${pid}</a>\n🔗 <b>原图:</b> <a href="${htmlEscape(urls.original)}">高清查看</a>\n📐 <b>尺寸:</b> <code>${width}×${height}</code>\n\n<i>📡 来源: Pixiv</i>`,
                             hasSpoiler: r18 === 1
                         },
                         usedProxy: proxyHost,
@@ -543,7 +543,7 @@ class ZprPlugin extends Plugin {
     await ZprConfigManager.reinit();
   }
 
-    description = `随机纸片人插件<br><br>${help_text}`;
+    description = `随机纸片人插件\n\n${help_text}`;
     
     cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
         zpr: async (msg: MessageContext): Promise<void> => {
@@ -568,8 +568,8 @@ class ZprPlugin extends Plugin {
                     if (args.length === 1) {
                         // 查看当前反代设置
                         const currentProxy = await ZprConfigManager.getProxyHost();
-                        await editHtmlMessage(msg, `🔗 <b>当前反代设置</b><br><br><b>当前地址:</b> <code>${htmlEscape(currentProxy)}</code><br><br><b>可用地址:</b><br>${Object.entries(PROXY_HOSTS).map(([key, value]) => 
-`• <code>${htmlEscape(value)}</code> - ${htmlEscape(key)}`).join('<br>')}<br><br><b>使用方法:</b><br><code>${mainPrefix}zpr proxy [地址]</code> - 设置反代地址`);
+                        await editHtmlMessage(msg, `🔗 <b>当前反代设置</b>\n\n<b>当前地址:</b> <code>${htmlEscape(currentProxy)}</code>\n\n<b>可用地址:</b>\n${Object.entries(PROXY_HOSTS).map(([key, value]) => 
+`• <code>${htmlEscape(value)}</code> - ${htmlEscape(key)}`).join("\n")}\n\n<b>使用方法:</b>\n<code>${mainPrefix}zpr proxy [地址]</code> - 设置反代地址`);
                         return;
                     }
                     
@@ -578,16 +578,16 @@ class ZprPlugin extends Plugin {
                     const validHosts = Object.values(PROXY_HOSTS);
                     
                     if (!validHosts.includes(newProxy)) {
-                        await editHtmlMessage(msg, `❌ <b>无效的反代地址</b><br><br><b>可用地址:</b><br>${Object.entries(PROXY_HOSTS).map(([key, value]) => 
-`• <code>${value}</code> - ${key}`).join('<br>')}`);
+                        await editHtmlMessage(msg, `❌ <b>无效的反代地址</b>\n\n<b>可用地址:</b>\n${Object.entries(PROXY_HOSTS).map(([key, value]) => 
+`• <code>${value}</code> - ${key}`).join("\n")}`);
                         return;
                     }
                     
                     const success = await ZprConfigManager.setProxyHost(newProxy);
                     if (success) {
-                        await editHtmlMessage(msg, `✅ <b>反代地址已更新</b><br><br><b>新地址:</b> <code>${htmlEscape(newProxy)}</code><br><br>设置已保存，下次获取图片时将使用新的反代地址。`);
+                        await editHtmlMessage(msg, `✅ <b>反代地址已更新</b>\n\n<b>新地址:</b> <code>${htmlEscape(newProxy)}</code>\n\n设置已保存，下次获取图片时将使用新的反代地址。`);
                     } else {
-                        await editHtmlMessage(msg, "❌ <b>设置失败</b><br><br>无法保存配置，请稍后重试。");
+                        await editHtmlMessage(msg, "❌ <b>设置失败</b>\n\n无法保存配置，请稍后重试。");
                     }
                     return;
                 }

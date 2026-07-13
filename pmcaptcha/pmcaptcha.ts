@@ -1,4 +1,4 @@
-import { TelegramClient, html } from "@mtcute/node";
+import { TelegramClient, thtml as html } from "@mtcute/node";
 import { Long } from "@mtcute/core";
 import type { MessageContext } from "@mtcute/dispatcher";
 import path from "path";
@@ -975,7 +975,7 @@ async function sendCaptcha(client: TelegramClient, userId: number): Promise<void
       const { question: q, answer: ans } = mathQuestion();
       answer   = ans;
       question = q;
-      const m = await client.sendText(userId, html(`🔒 <b>人机验证</b>（降级）<br><br>请回复以下算式的答案：<br><br>${codeTag(`${q} = ?`)}`));
+      const m = await client.sendText(userId, html(`🔒 <b>人机验证</b>（降级）\n\n请回复以下算式的答案：\n\n${codeTag(`${q} = ?`)}`));
       msgIds.push(m.id);
     }
 
@@ -1410,7 +1410,7 @@ const pmcaptcha = async (message: MessageContext) => {
     try {
       const tmp = await client.sendText(message.chat.id, html(enabling
         ? "✅ <b>PMCaptcha 已启用</b>"
-        : `🚫 <b>PMCaptcha 已禁用</b><br>验证配置已保留，下次启用后自动恢复`));
+        : `🚫 <b>PMCaptcha 已禁用</b>\n验证配置已保留，下次启用后自动恢复`));
       try { await message.delete(); } catch (e: unknown) { log(LogLevel.DEBUG, "pmcaptcha: message already deleted", e); }
       getActiveLifecycle()?.setTimeout(() => {
         void (tmp as { delete?: () => Promise<unknown> }).delete?.().catch(() => undefined);

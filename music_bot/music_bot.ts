@@ -4,7 +4,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { Message } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { logger } from "@utils/logger";
 import { sleep } from "@utils/asyncHelpers";
@@ -204,7 +204,7 @@ class MusicBotPlugin extends Plugin {
     botReady.clear();
   }
 
-  description: string = `<br>多音源音乐搜索<br>${help_text}`;
+  description: string = `\n多音源音乐搜索\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>

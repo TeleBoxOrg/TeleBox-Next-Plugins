@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import * as fs from "fs";
 import * as path from "path";
 import { execFile } from "child_process";
@@ -328,7 +328,7 @@ class ConvertPlugin extends Plugin {
     const replyDoc = replyMedia?.type === 'document' ? replyMedia : undefined;
     const replyVideo = replyMedia?.type === 'video' ? replyMedia : undefined;
     if (!client || !reply || (!replyDoc && !replyVideo)) {
-      await msg.edit({ text: html(`❌ <b>使用错误</b><br><br>请回复一个视频消息后再使用此命令。<br><br>请回复一个视频消息后再试。`) });
+      await msg.edit({ text: html(`❌ <b>使用错误</b>\n\n请回复一个视频消息后再使用此命令。\n\n请回复一个视频消息后再试。`) });
       return;
     }
 
@@ -369,7 +369,7 @@ class ConvertPlugin extends Plugin {
             const aiResponse = await gemini.searchMusic(userQuery);
             songInfo = extractSongInfo(aiResponse, userQuery);
 
-            await msg.edit({ text: html(`🎵 AI 识别结果:<br><b>歌名:</b> ${htmlEscape(songInfo.title)}<br><b>歌手:</b> ${htmlEscape(songInfo.artist)}<br><br>正在查找封面...`) });
+            await msg.edit({ text: html(`🎵 AI 识别结果:\n<b>歌名:</b> ${htmlEscape(songInfo.title)}\n<b>歌手:</b> ${htmlEscape(songInfo.artist)}\n\n正在查找封面...`) });
 
             tempCoverPath = path.join(converter.tempDir, `${timestamp}.jpg`);
             const coverFound = await searchAndDownloadCover(`${songInfo.title} ${songInfo.artist}`, tempCoverPath);
@@ -411,7 +411,7 @@ class ConvertPlugin extends Plugin {
 
     } catch (error: unknown) {
         logger.error("Conversion failed:", error);
-        await msg.edit({ text: html(`❌ <b>转换失败</b><br><br><b>错误:</b> ${htmlEscape(getErrorMessage(error))}`) });
+        await msg.edit({ text: html(`❌ <b>转换失败</b>\n\n<b>错误:</b> ${htmlEscape(getErrorMessage(error))}`) });
     } finally {
         converter.cleanupTempFiles(tempVideoPath, tempAudioPath, finalAudioPath, tempCoverPath);
     }

@@ -6,7 +6,7 @@ import type { MtcuteMessageContext } from "@utils/mtcuteTypes";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import { cronManager } from "@utils/cronManager";
 import * as cron from "cron";
@@ -551,7 +551,7 @@ ${mainPrefix}eat set</pre>
 
 class AcronPlugin extends Plugin {
 
-  description: string = `定时发送/转发/复制/置顶/取消置顶/删除消息/执行命令<br><br>${help_text}`;
+  description: string = `定时发送/转发/复制/置顶/取消置顶/删除消息/执行命令\n\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
@@ -864,7 +864,7 @@ class AcronPlugin extends Plugin {
             await db.write();
             await scheduleTask(t as AcronTask);
             await msg.edit({
-              text: html(`▶️ 已启用任务 <code>${escapedId}</code><br>下次执行: ${formatDate(
+              text: html(`▶️ 已启用任务 <code>${escapedId}</code>\n下次执行: ${formatDate(
                 cron.sendAt(t.cron).toJSDate(),
               )}`),
             });

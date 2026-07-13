@@ -3,7 +3,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { TelegramClient } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { Conversation } from "@mtcute/node";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
@@ -112,7 +112,7 @@ async function sendCheckinCommand(msg: MessageContext): Promise<void> {
       const responseText = botResponse.text || "签到成功";
       
       await msg.edit({
-        text: html`✅ <b>签到完成</b><br><br>${htmlEscape(responseText)}`
+        text: html`✅ <b>签到完成</b>\n\n${htmlEscape(responseText)}`
       });
     } else {
       await msg.edit({
@@ -128,14 +128,14 @@ async function sendCheckinCommand(msg: MessageContext): Promise<void> {
     if (errMsg.includes("FLOOD_WAIT")) {
       const waitTime = parseInt(errMsg.match(/\d+/)?.[0] || "60");
       await msg.edit({
-        text: html`⏳ <b>请求过于频繁</b><br><br>需要等待 ${waitTime} 秒后重试`
+        text: html`⏳ <b>请求过于频繁</b>\n\n需要等待 ${waitTime} 秒后重试`
       });
       return;
     }
 
     if (errMsg.includes("USER_BLOCKED")) {
       await msg.edit({
-        text: html`❌ <b>无法访问机器人</b><br><br>请先私聊 @${BOT_USERNAME} 并发送 /start`
+        text: html`❌ <b>无法访问机器人</b>\n\n请先私聊 @${BOT_USERNAME} 并发送 /start`
       });
       return;
     }
@@ -264,14 +264,14 @@ async function sendImageWithSpoiler(msg: MessageContext, command: string): Promi
     if (errMsg.includes("FLOOD_WAIT")) {
       const waitTime = parseInt(errMsg.match(/\d+/)?.[0] || "60");
       await msg.edit({
-        text: html`⏳ <b>请求过于频繁</b><br><br>需要等待 ${waitTime} 秒后重试`
+        text: html`⏳ <b>请求过于频繁</b>\n\n需要等待 ${waitTime} 秒后重试`
       });
       return;
     }
 
     if (errMsg.includes("USER_BLOCKED")) {
       await msg.edit({
-        text: html`❌ <b>无法访问机器人</b><br><br>请先私聊 @${BOT_USERNAME} 并发送 /start`
+        text: html`❌ <b>无法访问机器人</b>\n\n请先私聊 @${BOT_USERNAME} 并发送 /start`
       });
       return;
     }
@@ -291,7 +291,7 @@ class MztNewPlugin extends Plugin {
     }
     runtime.pendingDeleteTimers.clear();
   }
-  description: string = `妹子图片插件 - 从 ${BOT_USERNAME} 获取各类图片<br><br>${help_text}`;
+  description: string = `妹子图片插件 - 从 ${BOT_USERNAME} 获取各类图片\n\n${help_text}`;
 
   cmdHandlers = {
     // 主命令 - 显示帮助和设置
@@ -303,25 +303,25 @@ class MztNewPlugin extends Plugin {
       }
 
       try {
-        const settingsText = html`🎨 <b>妹子图片插件设置</b><br><br>
-<br><br>
-<b>当前配置：</b><br><br>
-• 机器人: @${BOT_USERNAME}<br>
-• 剧透模式: 已启用<br>
-• 自动删除命令: 已启用<br>
-<br>
-<b>可用命令：</b><br>
-• <code>${mainPrefix}rand</code> - 随机图片<br>
-• <code>${mainPrefix}pic</code> - 妹子图片  <br>
-• <code>${mainPrefix}leg</code> - 腿部图片<br>
-• <code>${mainPrefix}ass</code> - 臀部图片<br>
-• <code>${mainPrefix}chest</code> - 胸部图片<br>
-• <code>${mainPrefix}coser</code> - Cosplay图片<br>
-• <code>${mainPrefix}nsfw</code> - NSFW图片<br>
-• <code>${mainPrefix}naizi</code> - 奶子图片<br>
-<br>
-<b>使用说明：</b><br>
-所有图片都会以剧透模式发送，点击查看。<br>
+        const settingsText = html`🎨 <b>妹子图片插件设置</b>\n\n
+\n\n
+<b>当前配置：</b>\n\n
+• 机器人: @${BOT_USERNAME}\n
+• 剧透模式: 已启用\n
+• 自动删除命令: 已启用\n
+\n
+<b>可用命令：</b>\n
+• <code>${mainPrefix}rand</code> - 随机图片\n
+• <code>${mainPrefix}pic</code> - 妹子图片  \n
+• <code>${mainPrefix}leg</code> - 腿部图片\n
+• <code>${mainPrefix}ass</code> - 臀部图片\n
+• <code>${mainPrefix}chest</code> - 胸部图片\n
+• <code>${mainPrefix}coser</code> - Cosplay图片\n
+• <code>${mainPrefix}nsfw</code> - NSFW图片\n
+• <code>${mainPrefix}naizi</code> - 奶子图片\n
+\n
+<b>使用说明：</b>\n
+所有图片都会以剧透模式发送，点击查看。\n
 此消息将在30秒后自动删除。`;
 
         const statusMsg = await msg.edit({ 

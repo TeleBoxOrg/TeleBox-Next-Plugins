@@ -25,11 +25,11 @@ function scheduleTimer(fn: () => void, ms: number): ReturnType<typeof setTimeout
 
 class ClearStickerPlugin extends Plugin {
 
-  description: string = `🧹 <b>清理群内贴纸消息</b><br/><br/>
-<b>命令</b><br/>
-• <code>${mainPrefix}clear_sticker [数量]</code> / <code>${mainPrefix}cs [数量]</code><br/><br/>
-<b>说明</b><br/>
-• 清理群内历史贴纸消息（仅群聊可用）<br/>
+  description: string = `🧹 <b>清理群内贴纸消息</b>\n\n
+<b>命令</b>\n
+• <code>${mainPrefix}clear_sticker [数量]</code> / <code>${mainPrefix}cs [数量]</code>\n\n
+<b>说明</b>\n
+• 清理群内历史贴纸消息（仅群聊可用）\n
 • 可选参数"数量"用于限制删除数量（默认清理全部）`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {

@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -60,7 +60,7 @@ class AnnualReportPlugin extends Plugin {
     });
   }
 
-  description = `📊 年度报告插件<br><br>使用 ${getPrefixes()[0]}annualreport 生成您的Telegram年度报告`;
+  description = `📊 年度报告插件\n\n使用 ${getPrefixes()[0]}annualreport 生成您的Telegram年度报告`;
 
   cmdHandlers = {
     annualreport: this.handleAnnualReport.bind(this)

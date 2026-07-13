@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteFileLocation } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
 import axios from "axios";
@@ -31,7 +31,7 @@ const help_text = `🖼️ <b>搜图插件</b>
 
 class SoutuPlugin extends Plugin {
 
-  description: string = `回复图片进行搜图<br><br>${help_text}`;
+  description: string = `回复图片进行搜图\n\n${help_text}`;
 
   cmdHandlers = {
     [pluginName]: async (msg: MessageContext) => {

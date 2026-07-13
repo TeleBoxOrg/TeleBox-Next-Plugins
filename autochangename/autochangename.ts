@@ -5,7 +5,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { JSONFilePreset } from "lowdb/node";
 import { cronManager } from "@utils/cronManager";
 import * as path from "path";
@@ -1005,7 +1005,7 @@ class AutoChangeNamePlugin extends Plugin {
         const chatType = (msg.chat as { chatType?: string })?.chatType;
         if (chatType === 'channel') {
           await msg.edit({
-            text: html(`⚠️ <b>不支持在频道中使用此命令</b><br><br>请在私聊中发送命令来管理动态昵称。`)
+            text: html(`⚠️ <b>不支持在频道中使用此命令</b>\n\n请在私聊中发送命令来管理动态昵称。`)
           });
           return;
         }
@@ -1015,7 +1015,7 @@ class AutoChangeNamePlugin extends Plugin {
         }
         
         if (!userId || isNaN(userId)) {
-          await msg.edit({ text: html(`❌ <b>无法识别您的身份</b><br><br>请确保在私聊中使用此命令。`) });
+          await msg.edit({ text: html(`❌ <b>无法识别您的身份</b>\n\n请确保在私聊中使用此命令。`) });
           return;
         }
 
@@ -1030,14 +1030,14 @@ class AutoChangeNamePlugin extends Plugin {
         
         if (isFirstTime && !["save", "help", "h", "status"].includes(sub)) {
           await msg.edit({
-            text: html(`⚠️ <b>请先保存昵称</b><br><br>您还没有保存过昵称。<br><br>请先执行 <code>${mainPrefix}acn save</code> 保存您的当前昵称。`)
+            text: html(`⚠️ <b>请先保存昵称</b>\n\n您还没有保存过昵称。\n\n请先执行 <code>${mainPrefix}acn save</code> 保存您的当前昵称。`)
           });
           return;
         }
         
         if (needsSave && !isFirstTime && !["save", "help", "h", "status", "reset"].includes(sub)) {
           await msg.edit({
-            text: html(`⚠️ <b>配置不完整</b><br><br>请先执行 <code>${mainPrefix}acn save</code> 保存您的当前"干净"昵称。`)
+            text: html(`⚠️ <b>配置不完整</b>\n\n请先执行 <code>${mainPrefix}acn save</code> 保存您的当前"干净"昵称。`)
           });
           return;
         }
@@ -1060,7 +1060,7 @@ class AutoChangeNamePlugin extends Plugin {
           case "time": await this.handleTimeToggle(msg, userId, args.slice(1)); break;
           default:
             await msg.edit({
-              text: html(`❌ <b>未知命令</b><br><br>未知的子命令: <code>${htmlEscape(sub)}</code><br><br>输入 <code>${mainPrefix}acn</code> 查看帮助。`)
+              text: html(`❌ <b>未知命令</b>\n\n未知的子命令: <code>${htmlEscape(sub)}</code>\n\n输入 <code>${mainPrefix}acn</code> 查看帮助。`)
             });
         }
 
@@ -1068,7 +1068,7 @@ class AutoChangeNamePlugin extends Plugin {
         const errMsg = getErrorMessage(error);
         if (errMsg.includes("FLOOD_WAIT")) {
           const waitTime = parseInt(errMsg.match(/\d+/)?.[0] || "60");
-          await msg.edit({ text: html(`⏳ <b>请求过于频繁</b><br><br>需要等待 ${waitTime} 秒后重试`) });
+          await msg.edit({ text: html(`⏳ <b>请求过于频繁</b>\n\n需要等待 ${waitTime} 秒后重试`) });
         } else if (!errMsg.includes("MESSAGE_ID_INVALID")) {
           const safeErrorMsg = (errMsg || "未知错误").substring(0, 100);
           await msg.edit({ text: html(`❌ <b>操作失败:</b> ${htmlEscape(safeErrorMsg)}`) });
@@ -1085,11 +1085,11 @@ class AutoChangeNamePlugin extends Plugin {
       const settings = await DataManager.getUserSettings(userId);
       if (settings && !settings.last_update) {
         await msg.edit({
-          text: html(`🎉 <b>昵称保存成功！</b><br><br><b>✅ 已保存的原始昵称：</b><br>• 姓名: <code>${htmlEscape(settings.original_first_name || "")}</code><br>• 姓氏: <code>${htmlEscape(settings.original_last_name || "(空)")}</code><br><br><b>🚀 接下来您可以：</b><br><code>${mainPrefix}acn on/off</code> - 开启或关闭自动昵称更新`)
+          text: html(`🎉 <b>昵称保存成功！</b>\n\n<b>✅ 已保存的原始昵称：</b>\n• 姓名: <code>${htmlEscape(settings.original_first_name || "")}</code>\n• 姓氏: <code>${htmlEscape(settings.original_last_name || "(空)")}</code>\n\n<b>🚀 接下来您可以：</b>\n<code>${mainPrefix}acn on/off</code> - 开启或关闭自动昵称更新`)
         });
       } else if (settings) {
         await msg.edit({
-          text: html(`✅ <b>昵称已重新保存</b><br><br><b>姓名:</b> <code>${htmlEscape(settings.original_first_name || "")}</code><br><b>姓氏:</b> <code>${htmlEscape(settings.original_last_name || "(空)")}</code>`)
+          text: html(`✅ <b>昵称已重新保存</b>\n\n<b>姓名:</b> <code>${htmlEscape(settings.original_first_name || "")}</code>\n<b>姓氏:</b> <code>${htmlEscape(settings.original_last_name || "(空)")}</code>`)
         });
       }
     } else {
@@ -1102,7 +1102,7 @@ class AutoChangeNamePlugin extends Plugin {
     let settings = await DataManager.getUserSettings(userId);
     
     if (!settings || (!settings.original_first_name && enable)) {
-      await msg.edit({ text: html(`❌ <b>未保存原始昵称</b><br>请先执行：<code>${mainPrefix}acn save</code>`) });
+      await msg.edit({ text: html(`❌ <b>未保存原始昵称</b>\n请先执行：<code>${mainPrefix}acn save</code>`) });
       return;
     }
 
@@ -1111,7 +1111,7 @@ class AutoChangeNamePlugin extends Plugin {
       if (enable) {
         if (!nameManager.isSchedulerRunning()) nameManager.startAutoUpdate();
         await nameManager.updateUserProfile(userId, true);
-        await msg.edit({ text: html(`✅ <b>动态昵称已启用</b><br><br>🕐 当前时区: <code>${settings.timezone}</code><br>📝 显示模式: <code>${settings.mode}</code><br>⏰ 更新频率: 每分钟`) });
+        await msg.edit({ text: html(`✅ <b>动态昵称已启用</b>\n\n🕐 当前时区: <code>${settings.timezone}</code>\n📝 显示模式: <code>${settings.mode}</code>\n⏰ 更新频率: 每分钟`) });
       } else {
         await msg.edit({ text: html(`✅ <b>动态昵称已禁用</b>`) });
       }
@@ -1132,7 +1132,7 @@ class AutoChangeNamePlugin extends Plugin {
     if (settings.is_enabled) await nameManager.updateUserProfile(userId, true);
 
     await msg.edit({
-      text: html(`✅ <b>显示模式已切换</b><br><br>📝 当前模式: <code>${settings.mode}</code><br><br>• <code>time</code> - 昵称+时间<br>• <code>text</code> - 昵称+文案<br>• <code>both</code> - 昵称+文案+时间`)
+      text: html(`✅ <b>显示模式已切换</b>\n\n📝 当前模式: <code>${settings.mode}</code>\n\n• <code>time</code> - 昵称+时间\n• <code>text</code> - 昵称+文案\n• <code>both</code> - 昵称+文案+时间`)
     });
   }
 
@@ -1158,7 +1158,7 @@ class AutoChangeNamePlugin extends Plugin {
       ];
 
       await msg.edit({
-        text: html(`🎛️ <b>显示组件管理</b><br><br>当前组件: <code>${current.join(", ")}</code><br><br><b>组件状态：</b><br>${statusLines.join("<br>")}<br><br><b>使用说明：</b><br>• <code>${mainPrefix}acn show time on/off</code> — 显示或隐藏时间<br>• <code>${mainPrefix}acn show text on/off</code> — 显示或隐藏文案<br>• <code>${mainPrefix}acn show weather on/off</code> — 显示或隐藏天气<br>• <code>${mainPrefix}acn show reset</code> — 重置为模式默认值<br><br>⚠ emoji 和 timezone 请使用专属命令管理`)
+        text: html(`🎛️ <b>显示组件管理</b>\n\n当前组件: <code>${current.join(", ")}</code>\n\n<b>组件状态：</b>\n${statusLines.join("\n")}\n\n<b>使用说明：</b>\n• <code>${mainPrefix}acn show time on/off</code> — 显示或隐藏时间\n• <code>${mainPrefix}acn show text on/off</code> — 显示或隐藏文案\n• <code>${mainPrefix}acn show weather on/off</code> — 显示或隐藏天气\n• <code>${mainPrefix}acn show reset</code> — 重置为模式默认值\n\n⚠ emoji 和 timezone 请使用专属命令管理`)
       });
       return;
     }
@@ -1167,7 +1167,7 @@ class AutoChangeNamePlugin extends Plugin {
       settings.displayComponents = defaultByMode[settings.mode] || ["time"];
       if (await DataManager.saveUserSettings(settings)) {
         if (settings.is_enabled) await nameManager.updateUserProfile(userId, true);
-        await msg.edit({ text: html(`✅ <b>已重置为默认值</b><br><br>当前模式默认组件: <code>${settings.displayComponents.join(", ")}</code>`) });
+        await msg.edit({ text: html(`✅ <b>已重置为默认值</b>\n\n当前模式默认组件: <code>${settings.displayComponents.join(", ")}</code>`) });
       } else {
         await msg.edit({ text: html("❌ 设置保存失败") });
       }
@@ -1180,19 +1180,19 @@ class AutoChangeNamePlugin extends Plugin {
     }
     if (!isToggleable(action)) {
       await msg.edit({
-        text: html(`❌ <b>acn show 仅支持管理 time/text/weather</b><br><br>emoji 请使用：<br>• <code>${mainPrefix}acn emoji on/off</code>`)
+        text: html(`❌ <b>acn show 仅支持管理 time/text/weather</b>\n\nemoji 请使用：\n• <code>${mainPrefix}acn emoji on/off</code>`)
       });
       return;
     }
 
     if (target !== "on" && target !== "off") {
-      await msg.edit({ text: html(`❌ <b>请指定 on 或 off</b><br>使用: <code>${mainPrefix}acn show ${action} on/off</code>`) });
+      await msg.edit({ text: html(`❌ <b>请指定 on 或 off</b>\n使用: <code>${mainPrefix}acn show ${action} on/off</code>`) });
       return;
     }
 
     if (action === "weather") {
         if (target === "on" && !settings.weather_location?.trim()) {
-            await msg.edit({ text: html(`❌ <b>请先设置天气地点</b><br>使用 <code>${mainPrefix}acn weather set 北京</code>`) });
+            await msg.edit({ text: html(`❌ <b>请先设置天气地点</b>\n使用 <code>${mainPrefix}acn weather set 北京</code>`) });
             return;
         }
         settings.weather_enabled = (target === "on");
@@ -1211,7 +1211,7 @@ class AutoChangeNamePlugin extends Plugin {
 
     if (await DataManager.saveUserSettings(settings)) {
       if (settings.is_enabled) await nameManager.updateUserProfile(userId, true);
-      await msg.edit({ text: html(`✅ <b>组件已${target === "on" ? "开启" : "关闭"}</b><br><br><code>${action}</code> ${target === "on" ? "已启用" : "已禁用"}<br>当前组件: <code>${settings.displayComponents.join(", ")}</code>`) });
+      await msg.edit({ text: html(`✅ <b>组件已${target === "on" ? "开启" : "关闭"}</b>\n\n<code>${action}</code> ${target === "on" ? "已启用" : "已禁用"}\n当前组件: <code>${settings.displayComponents.join(", ")}</code>`) });
     } else {
       await msg.edit({ text: html("❌ 设置保存失败") });
     }
@@ -1220,7 +1220,7 @@ class AutoChangeNamePlugin extends Plugin {
   private async handleStatus(msg: MessageContext): Promise<void> {
     const enabledUsers = await DataManager.getAllEnabledUsers();
     await msg.edit({
-      text: html(`📊 <b>动态昵称状态</b><br><br>🔄 自动更新: <code>${nameManager.isSchedulerRunning() ? "运行中" : "已停止"}</code><br>👥 启用用户: <code>${enabledUsers.length}</code>`)
+      text: html(`📊 <b>动态昵称状态</b>\n\n🔄 自动更新: <code>${nameManager.isSchedulerRunning() ? "运行中" : "已停止"}</code>\n👥 启用用户: <code>${enabledUsers.length}</code>`)
     });
   }
 
@@ -1251,7 +1251,7 @@ class AutoChangeNamePlugin extends Plugin {
         if (validLines.length > 0) res += `✅ 成功添加 ${validLines.length} 条\n`;
         if (duplicateLines.length > 0) res += `⚠️ 跳过 ${duplicateLines.length} 条重复\n`;
         if (invalidLines.length > 0) res += `❌ 跳过 ${invalidLines.length} 条超长\n`;
-        await msg.edit({ text: html(res + `<br>📊 当前总数: ${texts.length}`) });
+        await msg.edit({ text: html(res + `\n📊 当前总数: ${texts.length}`) });
       } else {
         await msg.edit({ text: html("❌ 添加失败") });
       }
@@ -1260,7 +1260,7 @@ class AutoChangeNamePlugin extends Plugin {
       if (index >= 0 && index < texts.length) {
         texts.splice(index, 1);
         if (await DataManager.saveRandomTexts(texts)) {
-          await msg.edit({ text: html(`✅ <b>文本已删除</b><br>📊 剩余数量: ${texts.length}`) });
+          await msg.edit({ text: html(`✅ <b>文本已删除</b>\n📊 剩余数量: ${texts.length}`) });
         } else {
           await msg.edit({ text: html("❌ 删除失败") });
         }
@@ -1269,16 +1269,16 @@ class AutoChangeNamePlugin extends Plugin {
       }
     } else if (action === "list") {
       if (texts.length === 0) {
-        await msg.edit({ text: html(`📝 <b>无随机文本</b><br>使用 <code>${mainPrefix}acn text add 文本</code> 添加`) });
+        await msg.edit({ text: html(`📝 <b>无随机文本</b>\n使用 <code>${mainPrefix}acn text add 文本</code> 添加`) });
       } else {
-        await msg.edit({ text: html(`📝 <b>随机文本列表</b><br><br>${texts.map((t, i) => `)${i + 1}. ${htmlEscape(t)}`).join("<br>")}<br><br>📊 总数量: ${texts.length}`) });
+        await msg.edit({ text: html(`📝 <b>随机文本列表</b>\n\n${texts.map((t, i) => `)${i + 1}. ${htmlEscape(t)}`).join("\n")}\n\n📊 总数量: ${texts.length}`) });
       }
     } else if (action === "clear") {
       if (await DataManager.saveRandomTexts([])) {
         await msg.edit({ text: html("✅ 所有文本已清空") });
       }
     } else {
-      await msg.edit({ text: html(`❌ <b>命令格式错误</b><br>请使用 add, del, list, clear`) });
+      await msg.edit({ text: html(`❌ <b>命令格式错误</b>\n请使用 add, del, list, clear`) });
     }
   }
 
@@ -1366,7 +1366,7 @@ America/New_York
 
     const format = args[0]?.toLowerCase();
     if (!format) {
-      return void await msg.edit({ text: html(`🌐 <b>时区格式设置</b><br>当前: <code>${settings.timezone_format || 'GMT'}</code><br>可用: GMT, UTC, simp, offset, custom:文本`) });
+      return void await msg.edit({ text: html(`🌐 <b>时区格式设置</b>\n当前: <code>${settings.timezone_format || 'GMT'}</code>\n可用: GMT, UTC, simp, offset, custom:文本`) });
     }
 
     settings.timezone_format = format.startsWith('custom:') ? args.join(' ') : format.toUpperCase();
@@ -1405,7 +1405,7 @@ America/New_York
       const isOn = options.defaultOn
         ? (settings[options.key] as boolean) !== false
         : (settings[options.key] as boolean) === true;
-      await msg.edit({ text: html(`<b>${options.settingName}</b><br>当前: <code>${isOn ? "开启" : "关闭"}</code><br>使用 <code>${mainPrefix}acn ${options.command} on/off</code> 切换`) });
+      await msg.edit({ text: html(`<b>${options.settingName}</b>\n当前: <code>${isOn ? "开启" : "关闭"}</code>\n使用 <code>${mainPrefix}acn ${options.command} on/off</code> 切换`) });
     }
   }
 
@@ -1420,7 +1420,7 @@ America/New_York
     };
 
     if (!validStyles[styleArg]) {
-      return void await msg.edit({ text: html(`🎨 <b>文字样式</b><br>可用: normal, italic, double, sans, mono, outline`) });
+      return void await msg.edit({ text: html(`🎨 <b>文字样式</b>\n可用: normal, italic, double, sans, mono, outline`) });
     }
 
     settings.text_style = validStyles[styleArg];
@@ -1439,7 +1439,7 @@ America/New_York
     const arg0 = (args[0] || "").toLowerCase();
     if (!arg0 || arg0 === "help") {
       const prev = await nameManager.getWeatherCompact(settings);
-      return void await msg.edit({ text: html(`🌤️ <b>天气配置</b><br>开关: <code>${settings.weather_enabled ? "开" : "关"}</code><br>地点: <code>${settings.weather_location || "未设置"}</code><br>预览: <code>${prev}</code>`) });
+      return void await msg.edit({ text: html(`🌤️ <b>天气配置</b>\n开关: <code>${settings.weather_enabled ? "开" : "关"}</code>\n地点: <code>${settings.weather_location || "未设置"}</code>\n预览: <code>${prev}</code>`) });
     }
 
     if (arg0 === "on" || arg0 === "off") {
@@ -1465,7 +1465,7 @@ America/New_York
     if (!settings) return;
 
     if (args.length === 0) {
-      return void await msg.edit({ text: html(`📋 <b>当前显示顺序</b><br><code>${settings.display_order || "默认"}</code><br>使用 <code>${mainPrefix}acn order name,time,text...</code> 调整`) });
+      return void await msg.edit({ text: html(`📋 <b>当前显示顺序</b>\n<code>${settings.display_order || "默认"}</code>\n使用 <code>${mainPrefix}acn order name,time,text...</code> 调整`) });
     }
 
     const newOrder = args.join("").toLowerCase();
@@ -1477,7 +1477,7 @@ America/New_York
     settings.display_order = newOrder;
     if (await DataManager.saveUserSettings(settings)) {
       if (settings.is_enabled) await nameManager.updateUserProfile(userId, true);
-      await msg.edit({ text: html(`✅ <b>显示顺序已更新为:</b><br><code>${newOrder}</code>`) });
+      await msg.edit({ text: html(`✅ <b>显示顺序已更新为:</b>\n<code>${newOrder}</code>`) });
     } else {
       await msg.edit({ text: html("❌ 设置保存失败") });
     }

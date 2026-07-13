@@ -9,7 +9,7 @@ import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getErrorMessage } from "@utils/errorHelpers";
 import type { MtcuteFileLocation } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MessageMedia } from "@mtcute/core";
 
@@ -214,7 +214,7 @@ async function handleConfig(
       if (!subValue) {
         const current = await resolveMaxImageBytes();
         await msg.edit({
-          text: html`当前图片大小上限：${formatBytes(current)}（范围 ${formatBytes(MIN_ALLOWED_IMAGE_BYTES)} - ${formatBytes(MAX_ALLOWED_IMAGE_BYTES)}）<br>使用 <code>${mainPrefix}banana limit default</code> 可恢复默认值`,
+          text: html`当前图片大小上限：${formatBytes(current)}（范围 ${formatBytes(MIN_ALLOWED_IMAGE_BYTES)} - ${formatBytes(MAX_ALLOWED_IMAGE_BYTES)}）\n使用 <code>${mainPrefix}banana limit default</code> 可恢复默认值`,
         });
         return;
       }
@@ -487,7 +487,7 @@ async function handleBananaCommand(msg: MessageContext): Promise<void> {
 
 class BananaPlugin extends Plugin {
 
-  description: string = `Nano-Banana 图像编辑插件<br><br>${help_text}`;
+  description: string = `Nano-Banana 图像编辑插件\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     banana: handleBananaCommand,
   };

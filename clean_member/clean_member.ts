@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import type { TelegramClient } from "@mtcute/node";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteInputChannel, MtcuteInputPeer, MtcuteLong } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -642,39 +642,39 @@ const clean_member = async (msg: MessageContext) => {
   if (mode === "1") {
     if (args.length < 2) {
       await msg.edit({
-        text: html`❌ <b>参数不足</b><br><br>模式1需要指定天数<br>💡 示例: <code>${mainPrefix}clean_member 1 7 search</code>`,
+        text: html`❌ <b>参数不足</b>\n\n模式1需要指定天数\n💡 示例: <code>${mainPrefix}clean_member 1 7 search</code>`,
       });
       return;
     }
     day = parseInt(args[1]);
     if (isNaN(day) || day < 1) {
-      await msg.edit({ text: html`❌ <b>参数错误</b><br><br>天数必须为正整数` });
+      await msg.edit({ text: html`❌ <b>参数错误</b>\n\n天数必须为正整数` });
       return;
     }
     day = Math.max(day, 7);
   } else if (mode === "2") {
     if (args.length < 2) {
       await msg.edit({
-        text: html`❌ <b>参数不足</b><br><br>模式2需要指定天数<br>💡 示例: <code>${mainPrefix}clean_member 2 30 search</code>`,
+        text: html`❌ <b>参数不足</b>\n\n模式2需要指定天数\n💡 示例: <code>${mainPrefix}clean_member 2 30 search</code>`,
       });
       return;
     }
     day = parseInt(args[1]);
     if (isNaN(day) || day < 1) {
-      await msg.edit({ text: html`❌ <b>参数错误</b><br><br>天数必须为正整数` });
+      await msg.edit({ text: html`❌ <b>参数错误</b>\n\n天数必须为正整数` });
       return;
     }
     day = Math.max(day, 7);
   } else if (mode === "3") {
     if (args.length < 2) {
       await msg.edit({
-        text: html`❌ <b>参数不足</b><br><br>模式3需要指定发言数<br>💡 示例: <code>${mainPrefix}clean_member 3 5 search</code>`,
+        text: html`❌ <b>参数不足</b>\n\n模式3需要指定发言数\n💡 示例: <code>${mainPrefix}clean_member 3 5 search</code>`,
       });
       return;
     }
     day = parseInt(args[1]);
     if (isNaN(day) || day < 1) {
-      await msg.edit({ text: html`❌ <b>参数错误</b><br><br>发言数必须为正整数` });
+      await msg.edit({ text: html`❌ <b>参数错误</b>\n\n发言数必须为正整数` });
       return;
     }
   } else if (mode === "4" || mode === "5") {
@@ -708,7 +708,7 @@ const clean_member = async (msg: MessageContext) => {
       chatId = channelEntity;
     } catch (error: unknown) {
       await msg.edit({
-        text: html`❌ <b>错误：</b>无法访问指定群组<br><br>请确认群组ID正确且您是该群组成员<br>错误: ${htmlEscape(getErrorMessage(error))}`,
+        text: html`❌ <b>错误：</b>无法访问指定群组\n\n请确认群组ID正确且您是该群组成员\n错误: ${htmlEscape(getErrorMessage(error))}`,
       });
       return;
     }
@@ -726,7 +726,7 @@ const clean_member = async (msg: MessageContext) => {
     `🧹 开始清理: ${modeNames[mode]}`;
   
   await msg.edit({
-    text: html`📋 <b>群组清理任务启动</b><br><br>🏷️ 群组: <b>${htmlEscape(chatTitle)}</b><br>🎯 ${startMessage}<br><br>⏳ 正在初始化...`,
+    text: html`📋 <b>群组清理任务启动</b>\n\n🏷️ 群组: <b>${htmlEscape(chatTitle)}</b>\n🎯 ${startMessage}\n\n⏳ 正在初始化...`,
   });
   let savedMessageId: number | null = null;
   let useOriginalMessage = true;
@@ -739,7 +739,7 @@ const clean_member = async (msg: MessageContext) => {
         return;
       }
       lastUpdateTime = now;
-      const progressMessage = html`📋 <b>群组清理进度</b><br><br>🏷️ 群组: <b>${htmlEscape(chatTitle)}</b><br>📊 ${message}<br><br>⏰ 更新时间: ${new Date().toLocaleTimeString('zh-CN')}`;
+      const progressMessage = html`📋 <b>群组清理进度</b>\n\n🏷️ 群组: <b>${htmlEscape(chatTitle)}</b>\n📊 ${message}\n\n⏰ 更新时间: ${new Date().toLocaleTimeString('zh-CN')}`;
       if (useOriginalMessage) {
         try {
           await msg.edit({
@@ -748,7 +748,7 @@ const clean_member = async (msg: MessageContext) => {
         } catch (editError: unknown) {
           logger.info("原消息编辑失败，切换到收藏夹:", editError);
           useOriginalMessage = false;
-          const savedMsg = await client.sendText("me", html`⚠️ <b>原消息已被删除，进度转移到收藏夹</b><br><br>${message}`);
+          const savedMsg = await client.sendText("me", html`⚠️ <b>原消息已被删除，进度转移到收藏夹</b>\n\n${message}`);
           if (savedMsg && typeof savedMsg.id === 'number') {
             savedMessageId = savedMsg.id;
           }
@@ -796,7 +796,7 @@ const clean_member = async (msg: MessageContext) => {
         logger.error("Failed to generate report:", error);
       }
       await msg.edit({
-        text: html`✅ 搜索完成（缓存）<br><br>📊 找到 ${cached.total_found} 名符合条件用户<br>📁 报告已保存至 \`${CACHE_DIR}/\`<br><br>💡 执行清理: \`${mainPrefix}clean_member ${mode}${day > 0 ? " " + day : ""}\``,
+        text: html`✅ 搜索完成（缓存）\n\n📊 找到 ${cached.total_found} 名符合条件用户\n📁 报告已保存至 \`${CACHE_DIR}/\`\n\n💡 执行清理: \`${mainPrefix}clean_member ${mode}${day > 0 ? " " + day : ""}\``,
       });
       return;
     }

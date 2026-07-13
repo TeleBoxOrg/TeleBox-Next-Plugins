@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { Message } from "@mtcute/node";
@@ -180,7 +180,7 @@ async function fetchAndSendAudio(
 
 class NeteasePlugin extends Plugin {
 
-  description: string = `<br>netease<br><br>${help_text}`;
+  description: string = `\nnetease\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     netease: async (msg: MessageContext) => {
       const keyword = getRemarkFromMsg(msg, 0);

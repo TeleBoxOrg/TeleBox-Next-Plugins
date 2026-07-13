@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 
 import { safeGetMe } from "@utils/authGuards";
@@ -60,7 +60,7 @@ type UserInfo = {
 
 class IdsPlugin extends Plugin {
 
-  description: string = `用户信息查询插件<br><br>${help_text}`;
+  description: string = `用户信息查询插件\n\n${help_text}`;
 
   // 高精度采样点 (ID, Timestamp) - 2026最新校准
   private readonly ID_DATA_POINTS: [number, number][] = [
@@ -251,8 +251,8 @@ class IdsPlugin extends Plugin {
     if (text.length <= 4096) { await msg.edit({ text: html(text) }); return; }
     const parts = text.match(/[\s\S]{1,4000}/g) || [];
     for (let i = 0; i < parts.length; i++) {
-      if (i === 0) await msg.edit({ text: html(parts[i] + `<br><br>📄 (1/${parts.length})`) });
-      else await msg.replyText(html(parts[i] + `<br><br>📄 (${i + 1}/${parts.length})`));
+      if (i === 0) await msg.edit({ text: html(parts[i] + `\n\n📄 (1/${parts.length})`) });
+      else await msg.replyText(html(parts[i] + `\n\n📄 (${i + 1}/${parts.length})`));
     }
   }
 }

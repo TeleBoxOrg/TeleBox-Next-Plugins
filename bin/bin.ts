@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
@@ -119,7 +119,7 @@ async function fetchFromBincheck(bin: string): Promise<Partial<{ scheme: string;
 
 class BinPlugin extends Plugin {
 
-  description: string = `BIN 查询插件<br><br>${help_text}`;
+  description: string = `BIN 查询插件\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     bin: async (msg: MessageContext) => {
       const line = msg.text?.trim()?.split(/\r?\n/g)?.[0] || "";
@@ -135,7 +135,7 @@ class BinPlugin extends Plugin {
       }
       const bin = (rest[0] || "").replace(/\D/g, "");
       if (bin.length < 6 || bin.length > 8) {
-        await msg.edit({ text: html(`❌ 无效BIN：<code>${htmlEscape(rest[0] || "")}</code><br>需6-8位数字`) });
+        await msg.edit({ text: html(`❌ 无效BIN：<code>${htmlEscape(rest[0] || "")}</code>\n需6-8位数字`) });
         return;
       }
       await msg.edit({ text: `🔍 正在查询 BIN ${bin}...` });

@@ -4,7 +4,7 @@ import { getPrefixes } from "@utils/pluginManager";
 import type { Sticker, InputMediaDocument, InputMediaPhoto } from "@mtcute/core";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { TelegramClient } from "@mtcute/core/highlevel/client.js";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -207,16 +207,16 @@ class StickerToPicPlugin extends Plugin {
             const version = execSync('convert -version', { encoding: 'utf8' });
             const versionLine = version.split('\n')[0];
             await msg.edit({
-              text: html(`✅ <b>ImageMagick状态正常</b><br><br><b>版本信息:</b><br><code>${htmlEscape(versionLine)}</code><br><br>🎯 <b>功能状态:</b> 可正常使用贴纸转换功能`)
+              text: html(`✅ <b>ImageMagick状态正常</b>\n\n<b>版本信息:</b>\n<code>${htmlEscape(versionLine)}</code>\n\n🎯 <b>功能状态:</b> 可正常使用贴纸转换功能`)
             });
           } catch (_e: unknown) {
             await msg.edit({
-              text: html("✅ <b>ImageMagick已安装</b><br><br>⚠️ 无法获取版本信息，但可正常使用")
+              text: html("✅ <b>ImageMagick已安装</b>\n\n⚠️ 无法获取版本信息，但可正常使用")
             });
           }
         } catch (_e: unknown) {
           // 未安装，尝试自动安装
-          await msg.edit({ text: html("❌ <b>ImageMagick未安装</b><br><br>🔄 正在自动安装，请稍候...") });
+          await msg.edit({ text: html("❌ <b>ImageMagick未安装</b>\n\n🔄 正在自动安装，请稍候...") });
           
           const isInstalled = await ensureImageMagick(true, msg);
           if (isInstalled) {
@@ -224,11 +224,11 @@ class StickerToPicPlugin extends Plugin {
               const version = execSync('convert -version', { encoding: 'utf8' });
               const versionLine = version.split('\n')[0];
               await msg.edit({
-                text: html(`🎉 <b>ImageMagick自动安装成功！</b><br><br><b>版本信息:</b><br><code>${htmlEscape(versionLine)}</code><br><br>✅ <b>状态:</b> 现在可以正常使用贴纸转换功能`)
+                text: html(`🎉 <b>ImageMagick自动安装成功！</b>\n\n<b>版本信息:</b>\n<code>${htmlEscape(versionLine)}</code>\n\n✅ <b>状态:</b> 现在可以正常使用贴纸转换功能`)
               });
             } catch (_e: unknown) {
               await msg.edit({
-                text: html("🎉 <b>ImageMagick自动安装成功！</b><br><br>✅ <b>状态:</b> 现在可以正常使用贴纸转换功能")
+                text: html("🎉 <b>ImageMagick自动安装成功！</b>\n\n✅ <b>状态:</b> 现在可以正常使用贴纸转换功能")
               });
             }
           } else {
@@ -251,7 +251,7 @@ class StickerToPicPlugin extends Plugin {
             }
             
             await msg.edit({
-              text: html(`❌ <b>ImageMagick自动安装失败</b><br><br><b>检测到系统:</b> ${platformName}<br><b>手动安装命令:</b><br><code>${htmlEscape(installCmd)}</code>`)
+              text: html(`❌ <b>ImageMagick自动安装失败</b>\n\n<b>检测到系统:</b> ${platformName}\n<b>手动安装命令:</b>\n<code>${htmlEscape(installCmd)}</code>`)
             });
           }
         }
@@ -278,7 +278,7 @@ class StickerToPicPlugin extends Plugin {
       } else {
         // 未知子命令，提示错误
         await msg.edit({
-          text: html(`❌ <b>未知子命令:</b> <code>${htmlEscape(sub)}</code><br><br>请使用 <code>${mainPrefix}stp help</code> 查看可用选项`)
+          text: html(`❌ <b>未知子命令:</b> <code>${htmlEscape(sub)}</code>\n\n请使用 <code>${mainPrefix}stp help</code> 查看可用选项`)
         });
         return;
       }
@@ -363,7 +363,7 @@ class StickerToPicPlugin extends Plugin {
             }
             
             await msg.edit({
-              text: html(`❌ <b>ImageMagick自动安装失败</b><br><br><b>请手动安装:</b><br><code>${htmlEscape(installCmd)}</code>`)
+              text: html(`❌ <b>ImageMagick自动安装失败</b>\n\n<b>请手动安装:</b>\n<code>${htmlEscape(installCmd)}</code>`)
             });
             return;
           }
@@ -397,7 +397,7 @@ class StickerToPicPlugin extends Plugin {
         } catch (convertError: unknown) {
           logger.error('[sticker_to_pic] ImageMagick转换失败:', convertError);
           await msg.edit({
-            text: html(`❌ <b>贴纸转换失败</b><br><br><b>错误详情:</b> ${htmlEscape(getErrorMessage(convertError))}<br><br>💡 请确保贴纸格式正确`)
+            text: html(`❌ <b>贴纸转换失败</b>\n\n<b>错误详情:</b> ${htmlEscape(getErrorMessage(convertError))}\n\n💡 请确保贴纸格式正确`)
           });
           return;
         }
@@ -454,7 +454,7 @@ class StickerToPicPlugin extends Plugin {
       } else if (getErrorMessage(error).includes('DOCUMENT_INVALID')) {
         errorMsg = "❌ <b>无效的文档文件</b>";
       } else {
-        errorMsg += `<br><br><b>错误详情:</b> ${htmlEscape(getErrorMessage(error))}`;
+        errorMsg += `\n\n<b>错误详情:</b> ${htmlEscape(getErrorMessage(error))}`;
       }
       
       await msg.edit({

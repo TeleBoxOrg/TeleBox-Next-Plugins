@@ -3,7 +3,7 @@ import {
 } from "@utils/pluginBase";
 import { logger } from "@utils/logger";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { execSync, execFile, ChildProcess, spawn } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
@@ -212,7 +212,7 @@ async function installDependencies(msg: MessageContext): Promise<void> {
       logger.info("[SUCCESS] Installed 'sshpass'.");
     }
     await msg.edit({
-      text: html`✅ <b>依赖安装完成！</b><br><br>为了使插件生效，请现在<b>重启TeleBox</b>。`
+      text: html`✅ <b>依赖安装完成！</b>\n\n为了使插件生效，请现在<b>重启TeleBox</b>。`
     });
     dependenciesInstalled = false;
   } catch (error: unknown) {
@@ -485,7 +485,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
         const newTimeout = parseInt(args[1]);
         if (isNaN(newTimeout) || newTimeout < 10 || newTimeout > 600) {
           await msg.edit({
-            text: html`❌ <b>无效的超时时间</b><br><br>请输入10到600之间的秒数。`
+            text: html`❌ <b>无效的超时时间</b>\n\n请输入10到600之间的秒数。`
           });
           return;
         }
@@ -591,7 +591,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
         const newName = args.slice(2).join(" ");
         if (isNaN(displayId) || displayId < 1 || !newName) {
           await msg.edit({
-            text: html`❌ <b>参数错误</b><br><br>请使用: <code>sl rename &lt;显示序号&gt; &lt;新别名&gt;</code>`
+            text: html`❌ <b>参数错误</b>\n\n请使用: <code>sl rename &lt;显示序号&gt; &lt;新别名&gt;</code>`
           });
           return;
         }
@@ -983,7 +983,7 @@ const speedtest = async (msg: MessageContext): Promise<void> => {
 // --- Plugin class ---
 class SpeedlinkPlugin extends Plugin {
 
-  description: string = `⚡️ 网络速度测试工具 (多服务器)<br><br>${HELP_TEXT}`;
+  description: string = `⚡️ 网络速度测试工具 (多服务器)\n\n${HELP_TEXT}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     speedlink: speedtest,
     sl: speedtest,

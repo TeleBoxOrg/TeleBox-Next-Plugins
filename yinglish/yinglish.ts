@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { safeGetMessages } from "@utils/safeGetMessages";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
@@ -14,14 +14,14 @@ const mainPrefix = prefixes[0];
 
 class YinglishPlugin extends Plugin {
 
-  description: string = `💋 <b>淫语翻译</b><br/><br/>
-<b>命令</b><br/>
-• <code>${mainPrefix}yinglish [文本]</code>（也可回复一条消息使用）<br/><br/>
-<b>功能</b><br/>
-• 将中文/英文智能分词并随机替换为"淫语"风格文本<br/>
-• 支持回复消息直接转换<br/><br/>
-<b>示例</b><br/>
-• <code>${mainPrefix}yinglish 你好世界</code><br/>
+  description: string = `💋 <b>淫语翻译</b>\n\n
+<b>命令</b>\n
+• <code>${mainPrefix}yinglish [文本]</code>（也可回复一条消息使用）\n\n
+<b>功能</b>\n
+• 将中文/英文智能分词并随机替换为"淫语"风格文本\n
+• 支持回复消息直接转换\n\n
+<b>示例</b>\n
+• <code>${mainPrefix}yinglish 你好世界</code>\n
 • 回复一条消息后发送 <code>${mainPrefix}yinglish</code>`;
   
   cmdHandlers: Record<string, (msg: MessageContext, trigger?: MessageContext) => Promise<void>> = {
@@ -67,7 +67,7 @@ class YinglishPlugin extends Plugin {
         }
         else {
           await msg.edit({
-            text: html`❌ <b>参数不足</b><br><br>💡 请提供要转换的文本或回复一条消息<br><br><b>用法:</b><br>• <code>${mainPrefix}yinglish 你好世界</code> - 转换指定文本<br>• <code>${mainPrefix}yinglish</code> (回复消息) - 转换回复消息的内容`
+            text: html`❌ <b>参数不足</b>\n\n💡 请提供要转换的文本或回复一条消息\n\n<b>用法:</b>\n• <code>${mainPrefix}yinglish 你好世界</code> - 转换指定文本\n• <code>${mainPrefix}yinglish</code> (回复消息) - 转换回复消息的内容`
           });
           return;
         }

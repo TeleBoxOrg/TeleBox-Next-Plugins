@@ -5,7 +5,7 @@ import { createDirectoryInTemp } from "@utils/pathHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteFileDownloadLocation } from "@utils/mtcuteTypes";
 import type { Chat } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getRawType } from "@utils/entityTypeGuards";
 import { exec } from "child_process";
 import * as fs from "fs";
@@ -149,7 +149,7 @@ const help = `🧩 <b>Sub-Store 管理</b>
 
 class SubStorePlugin extends Plugin {
 
-  description = `Sub-Store 管理<br><br>${help}`;
+  description = `Sub-Store 管理\n\n${help}`;
 
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     sub: async (msg) => {
@@ -187,7 +187,7 @@ class SubStorePlugin extends Plugin {
             const dockerCheck = await checkDockerIntegrity();
             if (!dockerCheck.valid) {
               await msg.edit({
-                text: html`❌ Docker检查失败: ${dockerCheck.error}<br><br>🔧 请先执行: <code>${mainPrefix}sub fix-docker</code>`,
+                text: html`❌ Docker检查失败: ${dockerCheck.error}\n\n🔧 请先执行: <code>${mainPrefix}sub fix-docker</code>`,
               });
               return;
             }

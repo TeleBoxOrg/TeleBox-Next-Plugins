@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { createDirectoryInTemp, createDirectoryInAssets } from "@utils/pathHelpers";
 import { JSONFilePreset } from "lowdb/node";
 import * as fs from "fs";
@@ -307,7 +307,7 @@ class SSHPlugin extends Plugin {
     await ConfigManager.get(CONFIG_KEYS.TARGET_CHAT);
   }
 
-  description: string = `SSH管理和服务器配置<br><br>${help_text}`;
+  description: string = `SSH管理和服务器配置\n\n${help_text}`;
 
   cmdHandlers = {
     ssh: async (msg: MessageContext) => {
@@ -342,7 +342,7 @@ class SSHPlugin extends Plugin {
     
     if (!canExecute) {
       await msg.edit({
-        text: html(`🔒 <b>权限限制</b><br><br>此SSH管理插件只能在以下位置执行：<br>• 收藏夹<br>• 已设置的目标会话<br><br>💡 当前目标: <code>${htmlEscape(targetChat)}</code>`)
+        text: html(`🔒 <b>权限限制</b>\n\n此SSH管理插件只能在以下位置执行：\n• 收藏夹\n• 已设置的目标会话\n\n💡 当前目标: <code>${htmlEscape(targetChat)}</code>`)
       });
       return;
     }
@@ -608,7 +608,7 @@ class SSHPlugin extends Plugin {
         type: "document",
         file: Buffer.from(fs.readFileSync(archivePath)),
         fileName: `${hostname}_ssh_keys.zip`,
-        caption: `🔐 <b>SSH密钥包</b> - ${hostname} - ${timestamp}<br><br><b>包含文件：</b><br>• RSA私钥 (OpenSSH格式)<br>• RSA私钥 (PPK格式)<br>• 使用说明<br><br>⚠️ <b>请妥善保管私钥文件</b>`,
+        caption: `🔐 <b>SSH密钥包</b> - ${hostname} - ${timestamp}\n\n<b>包含文件：</b>\n• RSA私钥 (OpenSSH格式)\n• RSA私钥 (PPK格式)\n• 使用说明\n\n⚠️ <b>请妥善保管私钥文件</b>`,
       });
 
       const modeText = mode === "replace" ? "已替换所有旧密钥" : "已追加到现有密钥";
@@ -654,7 +654,7 @@ class SSHPlugin extends Plugin {
         await execAsync(`test -f ${authorizedKeysPath}`);
       } catch (_e: unknown) {
         await msg.edit({
-          text: html`❌ <b>未找到授权密钥文件</b><br><br>文件路径: <code>/root/.ssh/authorized_keys</code><br>状态: 不存在`
+          text: html`❌ <b>未找到授权密钥文件</b>\n\n文件路径: <code>/root/.ssh/authorized_keys</code>\n状态: 不存在`
         });
         return;
       }
@@ -665,7 +665,7 @@ class SSHPlugin extends Plugin {
       
       if (lines.length === 0) {
         await msg.edit({
-          text: html`📋 <b>授权密钥列表</b><br><br>当前没有任何授权密钥`
+          text: html`📋 <b>授权密钥列表</b>\n\n当前没有任何授权密钥`
         });
         return;
       }
@@ -784,7 +784,7 @@ class SSHPlugin extends Plugin {
         await execAsync(`test -f ${authorizedKeysPath}`);
       } catch (_e: unknown) {
         await msg.edit({
-          text: html`❌ <b>未找到授权密钥文件</b><br><br>文件路径: <code>/root/.ssh/authorized_keys</code><br>状态: 不存在`
+          text: html`❌ <b>未找到授权密钥文件</b>\n\n文件路径: <code>/root/.ssh/authorized_keys</code>\n状态: 不存在`
         });
         return;
       }
@@ -795,7 +795,7 @@ class SSHPlugin extends Plugin {
       
       if (!keysContent) {
         await msg.edit({
-          text: html`📋 <b>授权密钥为空</b><br><br>当前没有任何授权密钥可导出`
+          text: html`📋 <b>授权密钥为空</b>\n\n当前没有任何授权密钥可导出`
         });
         return;
       }
@@ -868,11 +868,11 @@ ${keysContent}`;
         type: "document",
         file: Buffer.from(fs.readFileSync(archivePath)),
         fileName: `${hostname}_ssh_keys.zip`,
-        caption: `📦 <b>SSH密钥导出包</b><br><br>🖥️ 服务器: ${hostname}<br>📊 密钥数量: ${lines.length}<br>📅 导出时间: ${dayjs().format("YYYY-MM-DD HH:mm:ss")}<br><br>📁 <b>包含文件:</b><br>• authorized_keys_export.txt (带注释说明)<br>• authorized_keys (纯密钥文件)<br><br>⚠️ <b>安全提示:</b> 请妥善保管密钥文件`,
+        caption: `📦 <b>SSH密钥导出包</b>\n\n🖥️ 服务器: ${hostname}\n📊 密钥数量: ${lines.length}\n📅 导出时间: ${dayjs().format("YYYY-MM-DD HH:mm:ss")}\n\n📁 <b>包含文件:</b>\n• authorized_keys_export.txt (带注释说明)\n• authorized_keys (纯密钥文件)\n\n⚠️ <b>安全提示:</b> 请妥善保管密钥文件`,
       });
 
       await msg.edit({
-        text: html(`✅ <b>密钥导出成功</b><br><br>📊 导出密钥数量: ${lines.length}<br>📁 文件已发送到: ${targetChat === "me" ? "收藏夹" : htmlEscape(targetChat)}<br><br>💡 <b>文件说明:</b><br>• 带注释的完整导出文件<br>• 纯净的authorized_keys文件<br>• 可直接用于其他服务器配置`),
+        text: html(`✅ <b>密钥导出成功</b>\n\n📊 导出密钥数量: ${lines.length}\n📁 文件已发送到: ${targetChat === "me" ? "收藏夹" : htmlEscape(targetChat)}\n\n💡 <b>文件说明:</b>\n• 带注释的完整导出文件\n• 纯净的authorized_keys文件\n• 可直接用于其他服务器配置`),
       });
 
       // 清理临时文件
@@ -1184,7 +1184,7 @@ ${keysContent}`;
 
     if (!validatePassword(password)) {
       await msg.edit({
-        text: html`❌ <b>密码不符合要求</b><br><br>• 密码长度至少8位<br>• 建议包含数字、字母、特殊字符`
+        text: html`❌ <b>密码不符合要求</b>\n\n• 密码长度至少8位\n• 建议包含数字、字母、特殊字符`
       });
       return;
     }

@@ -8,7 +8,7 @@ import { safeGetMe } from "@utils/authGuards";
 import { TelegramClient } from "@mtcute/node";
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { MtcuteInputMediaLike } from "@utils/mtcuteTypes";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getEntityWithHash } from "@utils/entityHelpers";
 import { Plugin } from "@utils/pluginBase";
@@ -1301,7 +1301,7 @@ const dme = async (msg: MessageContext) => {
       const countArg = args[1];
       if (!countArg) {
         await msg.edit({
-          text: html(`❌ <b>参数错误:</b> 请指定删除数量<br><br>💡 使用 <code>${mainPrefix}dme -f [数量]</code>`),
+          text: html(`❌ <b>参数错误:</b> 请指定删除数量\n\n💡 使用 <code>${mainPrefix}dme -f [数量]</code>`),
         });
         return;
       }
@@ -1435,7 +1435,7 @@ const dme = async (msg: MessageContext) => {
 
 class DmePlugin extends Plugin {
 
-  description: string = `智能防撤回删除插件<br><br>${help_text}`;
+  description: string = `智能防撤回删除插件\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     dme,
   };

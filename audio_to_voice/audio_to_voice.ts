@@ -20,14 +20,14 @@ const execFileAsync = promisify(execFile);
 
 class AudioToVoicePlugin extends Plugin {
 
-  description: string = `🎙️ <b>音频转语音</b><br/><br/>
-<b>命令</b><br/>
-• <code>${mainPrefix}audio_to_voice</code>（回复一条包含音乐的消息）<br/><br/>
-<b>功能</b><br/>
-• 将音乐文件转换为 Telegram 语音消息（OGG/Opus）<br/><br/>
-<b>用法</b><br/>
-1) 回复音乐文件发送 <code>${mainPrefix}audio_to_voice</code><br/><br/>
-<b>依赖</b><br/>
+  description: string = `🎙️ <b>音频转语音</b>\n\n
+<b>命令</b>\n
+• <code>${mainPrefix}audio_to_voice</code>（回复一条包含音乐的消息）\n\n
+<b>功能</b>\n
+• 将音乐文件转换为 Telegram 语音消息（OGG/Opus）\n\n
+<b>用法</b>\n
+1) 回复音乐文件发送 <code>${mainPrefix}audio_to_voice</code>\n\n
+<b>依赖</b>\n
 • 需要系统安装 FFmpeg`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {

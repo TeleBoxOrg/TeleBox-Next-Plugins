@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient, tryGetCurrentGenerationContext } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { tl } from "@mtcute/core";
 import { logger } from "@utils/logger";
 
@@ -35,23 +35,23 @@ function timeoutAfter(ms: number, message: string, label: string): Promise<never
 
 class CopyStickerSetPlugin extends Plugin {
 
-  description: string = `📦 <b>复制贴纸包</b><br/><br/>
-<b>命令格式</b><br/>
-• <code>${mainPrefix}copy_sticker_set ＜贴纸包＞ [自定义名称] [limit=数字]</code><br/>
-• <code>.css ＜贴纸包＞ [自定义名称] [limit=数字]</code><br/><br/>
-<b>参数说明</b><br/>
-• <code>＜贴纸包＞</code> - 贴纸包链接或短名称（必填）<br/>
-• <code>[自定义名称]</code> - 新贴纸包的标题（可选）<br/>
-• <code>[limit=数字]</code> - 限制复制数量（最大 120，默认 100）<br/><br/>
-<b>使用示例</b><br/>
-• <code>${mainPrefix}copy_sticker_set https://t.me/addstickers/example</code><br/>
-• <code>${mainPrefix}copy_sticker_set example_stickers</code><br/>
-• <code>${mainPrefix}copy_sticker_set example_stickers 我的专属贴纸包</code><br/>
-• <code>${mainPrefix}css example_stickers 我的专属贴纸包 limit=80</code><br/><br/>
-<b>注意事项</b><br/>
-• 复制的贴纸包将保存到你的账户中<br/>
-• 如不指定名称，将使用原贴纸包名称<br/>
-• 支持静态和动态贴纸包<br/>
+  description: string = `📦 <b>复制贴纸包</b>\n\n
+<b>命令格式</b>\n
+• <code>${mainPrefix}copy_sticker_set ＜贴纸包＞ [自定义名称] [limit=数字]</code>\n
+• <code>.css ＜贴纸包＞ [自定义名称] [limit=数字]</code>\n\n
+<b>参数说明</b>\n
+• <code>＜贴纸包＞</code> - 贴纸包链接或短名称（必填）\n
+• <code>[自定义名称]</code> - 新贴纸包的标题（可选）\n
+• <code>[limit=数字]</code> - 限制复制数量（最大 120，默认 100）\n\n
+<b>使用示例</b>\n
+• <code>${mainPrefix}copy_sticker_set https://t.me/addstickers/example</code>\n
+• <code>${mainPrefix}copy_sticker_set example_stickers</code>\n
+• <code>${mainPrefix}copy_sticker_set example_stickers 我的专属贴纸包</code>\n
+• <code>${mainPrefix}css example_stickers 我的专属贴纸包 limit=80</code>\n\n
+<b>注意事项</b>\n
+• 复制的贴纸包将保存到你的账户中\n
+• 如不指定名称，将使用原贴纸包名称\n
+• 支持静态和动态贴纸包\n
 • 平台限制：最多允许 120 张（超过将报错）`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
@@ -77,27 +77,27 @@ class CopyStickerSetPlugin extends Plugin {
       
       if (args.length === 0) {
         await msg.edit({
-           text: html("📋 <b>复制贴纸包使用说明</b><br/><br/>" +
-                 "<b>命令格式</b><br/>" +
-                 `<code>${mainPrefix}copy_sticker_set ＜贴纸包＞ [自定义名称] [limit=数字]</code><br/>` +
-                 "<code>.css ＜贴纸包＞ [自定义名称] [limit=数字]</code><br/><br/>" +
-                 "<b>参数说明</b><br/>" +
-                 "• <code>＜贴纸包＞</code> - 贴纸包链接或短名称（必填）<br/>" +
-                 "• <code>[自定义名称]</code> - 新贴纸包的标题（可选）<br/>" +
-                 "• <code>[limit=数字]</code> - 限制复制数量（最大 120，默认 100）<br/><br/>" +
-                 "<b>使用示例</b><br/>" +
-                 "1. 使用完整链接：<br/>" +
-                 `   <code>${mainPrefix}copy_sticker_set https://t.me/addstickers/example</code><br/><br/>` +
-                 "2. 使用短名称：<br/>" +
-                 `   <code>${mainPrefix}copy_sticker_set example_stickers</code><br/><br/>` +
-                 "3. 自定义新贴纸包名称：<br/>" +
-                 `   <code>${mainPrefix}copy_sticker_set example_stickers 我的专属贴纸包</code><br/><br/>` +
-                 "4. 指定数量上限：<br/>" +
-                 `   <code>${mainPrefix}css example_stickers 我的专属贴纸包 limit=80</code><br/><br/>` +
-                 "<b>注意事项</b><br/>" +
-                 "• 复制的贴纸包将保存到你的账户中<br/>" +
-                 "• 如不指定名称，将使用原贴纸包名称<br/>" +
-                 "• 支持静态和动态贴纸包<br/>" +
+           text: html("📋 <b>复制贴纸包使用说明</b>\n\n" +
+                 "<b>命令格式</b>\n" +
+                 `<code>${mainPrefix}copy_sticker_set ＜贴纸包＞ [自定义名称] [limit=数字]</code>\n` +
+                 "<code>.css ＜贴纸包＞ [自定义名称] [limit=数字]</code>\n\n" +
+                 "<b>参数说明</b>\n" +
+                 "• <code>＜贴纸包＞</code> - 贴纸包链接或短名称（必填）\n" +
+                 "• <code>[自定义名称]</code> - 新贴纸包的标题（可选）\n" +
+                 "• <code>[limit=数字]</code> - 限制复制数量（最大 120，默认 100）\n\n" +
+                 "<b>使用示例</b>\n" +
+                 "1. 使用完整链接：\n" +
+                 `   <code>${mainPrefix}copy_sticker_set https://t.me/addstickers/example</code>\n\n` +
+                 "2. 使用短名称：\n" +
+                 `   <code>${mainPrefix}copy_sticker_set example_stickers</code>\n\n` +
+                 "3. 自定义新贴纸包名称：\n" +
+                 `   <code>${mainPrefix}copy_sticker_set example_stickers 我的专属贴纸包</code>\n\n` +
+                 "4. 指定数量上限：\n" +
+                 `   <code>${mainPrefix}css example_stickers 我的专属贴纸包 limit=80</code>\n\n` +
+                 "<b>注意事项</b>\n" +
+                 "• 复制的贴纸包将保存到你的账户中\n" +
+                 "• 如不指定名称，将使用原贴纸包名称\n" +
+                 "• 支持静态和动态贴纸包\n" +
                  "• 平台限制：最多允许 120 张（超过将报错）")
          });
         return;
@@ -116,14 +116,14 @@ class CopyStickerSetPlugin extends Plugin {
           if (!Number.isFinite(v) || v <= 0) {
             const prefixes = getPrefixes();
             await msg.edit({ 
-              text: html(`<b>❌ 参数错误</b><br/><br/>limit 参数无效，请使用 <code>limit=正整数</code>（最大120）<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+              text: html(`<b>❌ 参数错误</b>\n\nlimit 参数无效，请使用 <code>limit=正整数</code>（最大120）\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
             });
             return;
           }
           if (v > 120) {
             const prefixes = getPrefixes();
             await msg.edit({ 
-               text: html(`<b>❌ 参数错误</b><br/><br/>平台限制：最多 120 张贴纸。请调整 <code>limit 小于等于 120</code><br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+               text: html(`<b>❌ 参数错误</b>\n\n平台限制：最多 120 张贴纸。请调整 <code>limit 小于等于 120</code>\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
             });
             return;
           }
@@ -142,7 +142,7 @@ class CopyStickerSetPlugin extends Plugin {
         } else {
           const prefixes = getPrefixes();
           await msg.edit({
-            text: html(`<b>❌ 链接格式错误</b><br/><br/>无效的贴纸包链接格式<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+            text: html(`<b>❌ 链接格式错误</b>\n\n无效的贴纸包链接格式\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
           });
           return;
         }
@@ -169,7 +169,7 @@ class CopyStickerSetPlugin extends Plugin {
         } else {
           const prefixes = getPrefixes();
           await msg.edit({
-            text: html(`<b>❌ 获取失败</b><br/><br/>获取贴纸包信息失败<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+            text: html(`<b>❌ 获取失败</b>\n\n获取贴纸包信息失败\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
           });
           return;
         }
@@ -177,7 +177,7 @@ class CopyStickerSetPlugin extends Plugin {
         logger.error('Failed to get sticker set:', error);
         const prefixes = getPrefixes();
         await msg.edit({
-          text: html(`<b>❌ 贴纸包不存在</b><br/><br/>无法找到贴纸包：<code>${htmlEscape(stickerSetName)}</code><br/>请检查贴纸包名称是否正确<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+          text: html(`<b>❌ 贴纸包不存在</b>\n\n无法找到贴纸包：<code>${htmlEscape(stickerSetName)}</code>\n请检查贴纸包名称是否正确\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
         });
         return;
       }
@@ -188,7 +188,7 @@ class CopyStickerSetPlugin extends Plugin {
       if (!stickers || stickers.length === 0) {
         const prefixes = getPrefixes();
         await msg.edit({
-          text: html(`<b>❌ 贴纸包为空</b><br/><br/>贴纸包中没有贴纸<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+          text: html(`<b>❌ 贴纸包为空</b>\n\n贴纸包中没有贴纸\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
         });
         return;
       }
@@ -264,7 +264,7 @@ class CopyStickerSetPlugin extends Plugin {
       if (stickerInputs.length === 0) {
         const prefixes = getPrefixes();
         await msg.edit({
-          text: html(`<b>❌ 处理失败</b><br/><br/>无法处理任何贴纸<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+          text: html(`<b>❌ 处理失败</b>\n\n无法处理任何贴纸\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
         });
         return;
       }
@@ -302,7 +302,7 @@ class CopyStickerSetPlugin extends Plugin {
         } else {
           const prefixes = getPrefixes();
           await msg.edit({
-            text: html(`<b>❌ 创建失败</b><br/><br/>创建贴纸包失败，请稍后重试<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+            text: html(`<b>❌ 创建失败</b>\n\n创建贴纸包失败，请稍后重试\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
           });
         }
         
@@ -310,17 +310,17 @@ class CopyStickerSetPlugin extends Plugin {
         logger.error("Failed to create sticker set:", createError);
         
         const prefixes = getPrefixes();
-        let errorMsg = `<b>❌ 创建错误</b><br/><br/>创建贴纸包时出现错误<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
+        let errorMsg = `<b>❌ 创建错误</b>\n\n创建贴纸包时出现错误\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
         
         if (createError instanceof Error) {
           if (createError.message.includes('STICKERSET_INVALID')) {
-            errorMsg = `<b>❌ 数据无效</b><br/><br/>贴纸包数据无效<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
+            errorMsg = `<b>❌ 数据无效</b>\n\n贴纸包数据无效\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
           } else if (createError.message.includes('PEER_ID_INVALID')) {
-            errorMsg = `<b>❌ 用户ID无效</b><br/><br/>用户ID无效<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
+            errorMsg = `<b>❌ 用户ID无效</b>\n\n用户ID无效\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
           } else if (createError.message.includes('SHORTNAME_OCCUPY_FAILED')) {
-            errorMsg = `<b>❌ 名称被占用</b><br/><br/>贴纸包名称已被占用<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
+            errorMsg = `<b>❌ 名称被占用</b>\n\n贴纸包名称已被占用\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
           } else if (createError.message.includes('Timeout') || createError.message.includes('timeout')) {
-            errorMsg = `<b>❌ 创建超时</b><br/><br/>创建贴纸包超时，请稍后重试或尝试较小的贴纸包<br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
+            errorMsg = `<b>❌ 创建超时</b>\n\n创建贴纸包超时，请稍后重试或尝试较小的贴纸包\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`;
           }
         }
         
@@ -333,7 +333,7 @@ class CopyStickerSetPlugin extends Plugin {
       logger.error("CopyStickerSet plugin error:", error);
       const prefixes = getPrefixes();
       await msg.edit({
-        text: html(`<b>❌ 插件错误</b><br/><br/>复制贴纸包时出现错误：<code>${htmlEscape(error instanceof Error ? error.message : String(error))}</code><br/><br/>使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
+        text: html(`<b>❌ 插件错误</b>\n\n复制贴纸包时出现错误：<code>${htmlEscape(error instanceof Error ? error.message : String(error))}</code>\n\n使用 <code>${prefixes[0]}copy_sticker_set</code> 查看帮助`)
       });
     }
   }

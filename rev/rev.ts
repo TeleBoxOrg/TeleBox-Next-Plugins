@@ -8,7 +8,7 @@ import path from 'path';
 import type { MessageContext } from "@mtcute/dispatcher";
 import type { Message, MessageEntity, MessageMedia, Photo, Sticker, Video, Audio, Document, RawDocument } from "@mtcute/core";
 import type { TelegramClient } from "@mtcute/node";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { promisify } from 'util';
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
@@ -95,7 +95,7 @@ class REVPlugin extends Plugin {
 
 				// 无有效内容时的提示
 				await msg.edit({
-					text: html`❌ 请提供文本内容或回复一条支持的消息<br><br><b>支持的格式：</b><br>• 文本消息（逐行反转）<br>• 图片（JPG/PNG/BMP/WebP）<br>• 动图（GIF/.gif.mp4）<br>• 贴纸（WebM）<br><br><b>使用方法：</b><br><code>${mainPrefix}rev [文本]</code> 或回复消息使用 <code>${mainPrefix}rev [参数]</code>`,
+					text: html`❌ 请提供文本内容或回复一条支持的消息\n\n<b>支持的格式：</b>\n• 文本消息（逐行反转）\n• 图片（JPG/PNG/BMP/WebP）\n• 动图（GIF/.gif.mp4）\n• 贴纸（WebM）\n\n<b>使用方法：</b>\n<code>${mainPrefix}rev [文本]</code> 或回复消息使用 <code>${mainPrefix}rev [参数]</code>`,
 				});
 			} catch (error: unknown) {
 				await msg.edit({

@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
 import { JSONFilePreset } from "lowdb/node";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -150,11 +150,11 @@ class AffPlugin extends Plugin {
 
       // 无效参数
       await msg.edit({
-        text: html(`❌ <b>无效的参数</b><br><br>` +
-              `💡 使用方法：<br>` +
-              `• <code>${mainPrefix}aff</code> - 发送/列表<br>` +
-              `• <code>${mainPrefix}aff &lt;序号&gt;</code> - 发送指定条目<br>` +
-              `• <code>${mainPrefix}aff save</code> - 保存回复<br>` +
+        text: html(`❌ <b>无效的参数</b>\n\n` +
+              `💡 使用方法：\n` +
+              `• <code>${mainPrefix}aff</code> - 发送/列表\n` +
+              `• <code>${mainPrefix}aff &lt;序号&gt;</code> - 发送指定条目\n` +
+              `• <code>${mainPrefix}aff save</code> - 保存回复\n` +
               `• <code>${mainPrefix}aff remove &lt;序号&gt;</code> - 删除条目`),
       });
 
@@ -169,7 +169,7 @@ class AffPlugin extends Plugin {
     
     if (affs.length === 0) {
       await msg.edit({
-        text: html`❌ <b>暂无Aff信息</b><br><br>💡 请回复一条消息使用 <code>${mainPrefix}aff save</code> 保存`,
+        text: html`❌ <b>暂无Aff信息</b>\n\n💡 请回复一条消息使用 <code>${mainPrefix}aff save</code> 保存`,
       });
       return;
     }
@@ -249,7 +249,7 @@ class AffPlugin extends Plugin {
     
     if (!text.trim()) {
       await msg.edit({
-        text: html(`❌ <b>回复的消息内容为空</b><br><br>` +
+        text: html(`❌ <b>回复的消息内容为空</b>\n\n` +
               `💡 请回复一条包含aff信息的消息`),
       });
       return;
@@ -262,7 +262,7 @@ class AffPlugin extends Plugin {
     
     const affs = await this.getAffs();
     await msg.edit({
-      text: html`✅ <b>Aff信息保存成功！</b><br>🆔 当前序号：${affs.length}`,
+      text: html`✅ <b>Aff信息保存成功！</b>\n🆔 当前序号：${affs.length}`,
     });
   }
 
@@ -270,7 +270,7 @@ class AffPlugin extends Plugin {
   private async handleRemove(msg: MessageContext, param?: string): Promise<void> {
     if (!param) {
       await msg.edit({
-        text: html`❌ <b>请指定要删除的序号</b><br>💡 例如：<code>${mainPrefix}aff remove 1</code>`,
+        text: html`❌ <b>请指定要删除的序号</b>\n💡 例如：<code>${mainPrefix}aff remove 1</code>`,
       });
       return;
     }

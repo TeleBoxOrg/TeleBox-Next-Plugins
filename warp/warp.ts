@@ -4,7 +4,7 @@ import { getPrefixes } from "@utils/pluginManager";
 
 // Telegram API
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 
 // 内置依赖库
 import axios from "axios";
@@ -492,7 +492,7 @@ const helpText = `⚡ <b>WARP 管理面板</b>
 // 插件实现
 class WarpPlugin extends Plugin {
 
-  description: string = `Cloudflare WARP 管理<br><br>${helpText}`;
+  description: string = `Cloudflare WARP 管理\n\n${helpText}`;
 
   cmdHandlers = {
     warp: async (msg: MessageContext) => {
@@ -879,7 +879,7 @@ class WarpPlugin extends Plugin {
         case "port": {
           const p = parseInt(args[1] || "", 10);
           if (!p) {
-            await msg.edit({ text: html(`❌ 请提供端口号<br><br>用法: <code>${htmlEscape(mainPrefix)}warp port 40000</code>`) });
+            await msg.edit({ text: html(`❌ 请提供端口号\n\n用法: <code>${htmlEscape(mainPrefix)}warp port 40000</code>`) });
             return;
           }
           await msg.edit({ text: html(`🔄 正在修改端口为 ${p}...`) });
@@ -967,12 +967,12 @@ class WarpPlugin extends Plugin {
       // 处理特定错误类型
       if (errMsg.includes("FLOOD_WAIT")) {
         const waitTime = parseInt(errMsg.match(/\d+/)?.[0] || "60");
-        await msg.edit({ text: html(`⏳ <b>请求过于频繁</b><br><br>需要等待 ${waitTime} 秒后重试`) });
+        await msg.edit({ text: html(`⏳ <b>请求过于频繁</b>\n\n需要等待 ${waitTime} 秒后重试`) });
         return;
       }
       
       if (errMsg.includes("MESSAGE_TOO_LONG")) {
-        await msg.edit({ text: html("❌ <b>消息过长</b><br><br>请减少内容长度或使用文件发送") });
+        await msg.edit({ text: html("❌ <b>消息过长</b>\n\n请减少内容长度或使用文件发送") });
         return;
       }
       

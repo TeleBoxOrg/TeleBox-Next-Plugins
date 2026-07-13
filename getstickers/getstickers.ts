@@ -62,24 +62,24 @@ const execFileAsync = promisify(execFile);
 
 class GetStickersPlugin extends Plugin {
 
-  description: string = `🧩 <b>贴纸包打包下载</b><br/><br/>
-<b>命令</b><br/>
-• <code>${mainPrefix}getstickers</code>（回复任意贴纸）<br/><br/>
-<b>功能</b><br/>
-• 从回复的贴纸中识别贴纸包并下载全部贴纸<br/>
-• 使用 FFmpeg 自动转换所有格式为 gif（方便微信使用）<br/>
-• 支持 webp、tgs、mp4 格式转换<br/>
-• 自动生成 pack.txt 与全部资源，并以 ZIP 发送<br/><br/>
-<b>用法</b><br/>
-1) 回复一张贴纸并发送 <code>${mainPrefix}getstickers</code><br/><br/>
-<b>依赖安装</b><br/>
-• <b>FFmpeg</b>（必需）:<br/>
-  - Windows: <code>choco install ffmpeg</code><br/>
-  - macOS: <code>brew install ffmpeg</code><br/>
-  - Linux: <code>sudo apt install ffmpeg</code><br/>
-• <b>lottie</b>（tgs转换需要）:<br/>
-  - <code>pip install lottie[all]</code><br/><br/>
-<b>注意</b><br/>
+  description: string = `🧩 <b>贴纸包打包下载</b>\n\n
+<b>命令</b>\n
+• <code>${mainPrefix}getstickers</code>（回复任意贴纸）\n\n
+<b>功能</b>\n
+• 从回复的贴纸中识别贴纸包并下载全部贴纸\n
+• 使用 FFmpeg 自动转换所有格式为 gif（方便微信使用）\n
+• 支持 webp、tgs、mp4 格式转换\n
+• 自动生成 pack.txt 与全部资源，并以 ZIP 发送\n\n
+<b>用法</b>\n
+1) 回复一张贴纸并发送 <code>${mainPrefix}getstickers</code>\n\n
+<b>依赖安装</b>\n
+• <b>FFmpeg</b>（必需）:\n
+  - Windows: <code>choco install ffmpeg</code>\n
+  - macOS: <code>brew install ffmpeg</code>\n
+  - Linux: <code>sudo apt install ffmpeg</code>\n
+• <b>lottie</b>（tgs转换需要）:\n
+  - <code>pip install lottie[all]</code>\n\n
+<b>注意</b>\n
 • 若贴纸包很大，处理时间较长，请耐心等待`;
   
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {

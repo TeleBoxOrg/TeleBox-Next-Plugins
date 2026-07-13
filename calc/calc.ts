@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getErrorMessage } from "@utils/errorHelpers";
 
 const prefixes = getPrefixes();
@@ -224,7 +224,7 @@ class CalcPlugin extends Plugin {
 
       if (expression.length > MAX_EXPR_LENGTH) {
         await msg.edit({
-          text: html`❌ <b>表达式过长</b><br/><br/>最大长度: ${MAX_EXPR_LENGTH} 字符<br/>当前长度: ${expression.length}`,
+          text: html`❌ <b>表达式过长</b>\n\n最大长度: ${MAX_EXPR_LENGTH} 字符\n当前长度: ${expression.length}`,
         });
         return;
       }
@@ -234,14 +234,14 @@ class CalcPlugin extends Plugin {
         result = SafeMathParser.calculate(expression);
       } catch (error: unknown) {
         await msg.edit({
-          text: html`🚫 <b>计算失败</b><br/><br/>表达式: <code>${this.htmlEscape(expression)}</code><br/>错误: ${this.htmlEscape(getErrorMessage(error) ?? "未知错误")}`,
+          text: html`🚫 <b>计算失败</b>\n\n表达式: <code>${this.htmlEscape(expression)}</code>\n错误: ${this.htmlEscape(getErrorMessage(error) ?? "未知错误")}`,
         });
         return;
       }
 
       if (!Number.isFinite(result)) {
         await msg.edit({
-          text: html`🚫 <b>计算结果无效</b><br/><br/>表达式: <code>${this.htmlEscape(expression)}</code>`,
+          text: html`🚫 <b>计算结果无效</b>\n\n表达式: <code>${this.htmlEscape(expression)}</code>`,
         });
         return;
       }
@@ -249,12 +249,12 @@ class CalcPlugin extends Plugin {
       const formatted = this.formatResult(result);
 
       await msg.edit({
-        text: html`🧮 <b>计算结果</b><br/><br/><code>${this.htmlEscape(expression)}</code><br/>= <b>${formatted}</b>`,
+        text: html`🧮 <b>计算结果</b>\n\n<code>${this.htmlEscape(expression)}</code>\n= <b>${formatted}</b>`,
         disableWebPreview: true,
       });
     } catch (error: unknown) {
       await msg.edit({
-        text: html`❌ <b>插件错误</b><br/><br/>${this.htmlEscape(getErrorMessage(error) ?? "未知错误")}`,
+        text: html`❌ <b>插件错误</b>\n\n${this.htmlEscape(getErrorMessage(error) ?? "未知错误")}`,
       });
     }
   }

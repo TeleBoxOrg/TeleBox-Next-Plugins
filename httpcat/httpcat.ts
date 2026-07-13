@@ -2,7 +2,7 @@ import axios from "axios";
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 
 const timeout = 60000;
@@ -19,7 +19,7 @@ const help_text = `
 
 class HttpCatPlugin extends Plugin {
 
-  description: string = `<br>HTTP猫猫图片<br><br>${help_text}`;
+  description: string = `\nHTTP猫猫图片\n\n${help_text}`;
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     httpcat: async (msg: MessageContext) => {
       const args = msg.text?.split(/\s+/) || [];

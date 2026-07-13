@@ -3,7 +3,7 @@ import _ from "lodash";
 import { getPrefixes } from "@utils/pluginManager";
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { sleep } from "@utils/asyncHelpers";
@@ -99,7 +99,7 @@ function getTxtFromMsg(msg: MessageContext | string, n: number): string {
 }
 class ManageAdminPlugin extends Plugin {
 
-  description: string = `<br>管理管理员<br><br>${help_text}`;
+  description: string = `\n管理管理员\n\n${help_text}`;
   cmdHandlers: Record<
     string,
     (msg: MessageContext, trigger?: MessageContext) => Promise<void>
@@ -436,7 +436,7 @@ class ManageAdminPlugin extends Plugin {
           }
 
           await msg.edit({
-            text: html(`当前管理员列表：<br>${lines.join("<br>")}`),
+            text: html(`当前管理员列表：\n${lines.join("\n")}`),
           });
         } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : String(e);

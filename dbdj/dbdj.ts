@@ -5,7 +5,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
-import { html } from "@mtcute/node";
+import { thtml as html } from "@mtcute/node";
 import type { ClientInternals } from "@utils/clientInternals";
 
 const prefixes = getPrefixes();

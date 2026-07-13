@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
@@ -180,7 +180,7 @@ const help_text = `🍗 <b>疯狂星期四插件</b>
 
 class Crazy4Plugin extends Plugin {
 
-  description: string = `疯狂星期四文案插件<br><br>${help_text}`;
+  description: string = `疯狂星期四文案插件\n\n${help_text}`;
   
   cmdHandlers = {
     crazy4: async (msg: MessageContext) => {

@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
@@ -125,7 +125,7 @@ const help_text = `🗒️ <b>发电语录插件</b>
 
 class FadianPlugin extends Plugin {
 
-  description: string = `从远程配置随机生成发电语录<br><br>${help_text}`;
+  description: string = `从远程配置随机生成发电语录\n\n${help_text}`;
 
   cmdHandlers = {
     fadian: async (msg: MessageContext) => {
@@ -206,7 +206,7 @@ class FadianPlugin extends Plugin {
 
             if (!targetName) {
               await msg.edit({
-                text: html`❌ <b>参数不足</b><br><br>💡 使用方法：<br>1. <code>${mainPrefix}fadian fd &lt;名字&gt;</code><br>2. 回复某人消息后使用 <code>${mainPrefix}fadian fd</code><br><br>示例：<code>${mainPrefix}fadian fd 张三</code>`,
+                text: html`❌ <b>参数不足</b>\n\n💡 使用方法：\n1. <code>${mainPrefix}fadian fd &lt;名字&gt;</code>\n2. 回复某人消息后使用 <code>${mainPrefix}fadian fd</code>\n\n示例：<code>${mainPrefix}fadian fd 张三</code>`,
               });
               return;
             }
@@ -254,7 +254,7 @@ class FadianPlugin extends Plugin {
             const b = filterInput((lines[2] || args[2] || "").trim());
             if (!a || !b) {
               await msg.edit({
-                text: html`❌ <b>参数不足</b><br><br>💡 使用方法：<br>1. <code>${mainPrefix}fadian cp 名字1 名字2</code><br>2. 或者：<code>${mainPrefix}fadian cp</code><br>第二行写第一个名字<br>第三行写第二个名字`,
+                text: html`❌ <b>参数不足</b>\n\n💡 使用方法：\n1. <code>${mainPrefix}fadian cp 名字1 名字2</code>\n2. 或者：<code>${mainPrefix}fadian cp</code>\n第二行写第一个名字\n第三行写第二个名字`,
               });
               return;
             }
@@ -284,14 +284,14 @@ class FadianPlugin extends Plugin {
         if (errMsg.includes("FLOOD_WAIT")) {
           const waitTime = parseInt(errMsg.match(/\d+/)?.[0] || "60");
           await msg.edit({
-            text: html`⏳ <b>请求过于频繁</b><br><br>需要等待 ${waitTime} 秒后重试`,
+            text: html`⏳ <b>请求过于频繁</b>\n\n需要等待 ${waitTime} 秒后重试`,
           });
           return;
         }
 
         if (errMsg.includes("MESSAGE_TOO_LONG")) {
           await msg.edit({
-            text: html`❌ <b>消息过长</b><br><br>请减少内容长度或使用文件发送`,
+            text: html`❌ <b>消息过长</b>\n\n请减少内容长度或使用文件发送`,
           });
           return;
         }

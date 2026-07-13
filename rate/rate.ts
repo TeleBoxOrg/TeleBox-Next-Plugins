@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import axios, { AxiosError } from "axios";
 import { logger } from "@utils/logger";
@@ -237,7 +237,7 @@ const help_text = `🚀 <b>智能汇率查询助手</b>
 
 class RatePlugin extends Plugin {
 
-  description: string = `加密货币汇率查询 & 数量换算<br><br>${help_text}`;
+  description: string = `加密货币汇率查询 & 数量换算\n\n${help_text}`;
 
   // 货币缓存 - 提高性能，避免重复API调用
   private currencyCache: Record<string, {id: string, symbol: string, name: string, type: 'crypto' | 'fiat'}> = {};
@@ -660,7 +660,7 @@ class RatePlugin extends Plugin {
       const currency1 = await this.searchCurrency(input1!);
       if (!currency1) {
         await msg.edit({
-          text: html(`❌ <b>货币未找到:</b> "${htmlEscape(input1!)}"<br><br>💡 请检查拼写或使用标准代码<br><br>🔎 <b>谷歌兜底:</b> <a href="${googleUrlFallback}">点击查看</a>`),
+          text: html(`❌ <b>货币未找到:</b> "${htmlEscape(input1!)}"\n\n💡 请检查拼写或使用标准代码\n\n🔎 <b>谷歌兜底:</b> <a href="${googleUrlFallback}">点击查看</a>`),
         });
         return;
       }
@@ -670,7 +670,7 @@ class RatePlugin extends Plugin {
         const searchResult = await this.searchCurrency(input2);
         if (!searchResult) {
           await msg.edit({
-            text: html(`❌ <b>货币未找到:</b> "${htmlEscape(input2)}"<br><br>💡 请检查拼写或使用标准代码<br><br>🔎 <b>谷歌兜底:</b> <a href="${googleUrlFallback}">点击查看</a>`),
+            text: html(`❌ <b>货币未找到:</b> "${htmlEscape(input2)}"\n\n💡 请检查拼写或使用标准代码\n\n🔎 <b>谷歌兜底:</b> <a href="${googleUrlFallback}">点击查看</a>`),
           });
           return;
         }
@@ -703,7 +703,7 @@ class RatePlugin extends Plugin {
       } catch (error: unknown) {
         logger.error(`[RatePlugin] 价格获取详细错误:`, error);
         await msg.edit({
-          text: html(`❌ <b>获取价格失败:</b> ${htmlEscape(getErrorMessage(error))}<br><br>🔍 <b>调试信息:</b><br>• ${htmlEscape(currency1.symbol)} (${htmlEscape(currency1.type)})<br>• ${htmlEscape(currency2.symbol)} (${htmlEscape(currency2.type)})`),
+          text: html(`❌ <b>获取价格失败:</b> ${htmlEscape(getErrorMessage(error))}\n\n🔍 <b>调试信息:</b>\n• ${htmlEscape(currency1.symbol)} (${htmlEscape(currency1.type)})\n• ${htmlEscape(currency2.symbol)} (${htmlEscape(currency2.type)})`),
         });
         return;
       }

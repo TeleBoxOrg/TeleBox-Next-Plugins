@@ -1,6 +1,6 @@
 import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
-import { html } from "@mtcute/html-parser";
+import { thtml as html } from "@mtcute/html-parser";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import axios from "axios";
@@ -206,18 +206,18 @@ class EpicPlugin extends Plugin {
 
         const res = await axios.get(EPIC_API_URL, { timeout: 15000 });
         const { current, upcoming } = parseFreeGames(res.data as EpicApiResponse);
-        let text = "🎮 <b>Epic Games 限免游戏</b><br><br>";
+        let text = "🎮 <b>Epic Games 限免游戏</b>\n\n";
 
         if (current.length > 0) {
-          text += "📢 <b>当前限免:</b><br><br>";
-          current.forEach((g, i) => (text += buildGameText(g, i + 1) + "<br><br>"));
+          text += "📢 <b>当前限免:</b>\n\n";
+          current.forEach((g, i) => (text += buildGameText(g, i + 1) + "\n\n"));
         } else {
-          text += "📢 <b>当前限免:</b> 暂无<br><br>";
+          text += "📢 <b>当前限免:</b> 暂无\n\n";
         }
 
         if (upcoming.length > 0) {
-          text += "🔜 <b>即将限免:</b><br><br>";
-          upcoming.forEach((g, i) => (text += buildGameText(g, i + 1) + "<br><br>"));
+          text += "🔜 <b>即将限免:</b>\n\n";
+          upcoming.forEach((g, i) => (text += buildGameText(g, i + 1) + "\n\n"));
         }
 
         await msg.edit({ text: html(text), disableWebPreview: true });
