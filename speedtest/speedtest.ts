@@ -19,7 +19,6 @@ import { getPrefixes } from "@utils/pluginManager";
 import { logger } from "@utils/logger";
 import { getErrorMessage, getErrorCode } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
-import type { ClientInternals } from "@utils/clientInternals";
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
@@ -1424,7 +1423,8 @@ const speedtest = async (msg: any) => {
 
             if (type === "photo") {
               const client = await getGlobalClient();
-              await (client as unknown as ClientInternals).sendFile(msg.chat.id, {
+              await client.sendMedia(msg.chat.id, {
+                type: "photo",
                 file: imagePath,
                 caption: finalDescription,
               });
@@ -1437,10 +1437,11 @@ const speedtest = async (msg: any) => {
               return true;
             } else if (type === "file") {
               const client = await getGlobalClient();
-              await (client as unknown as ClientInternals).sendFile(msg.chat.id, {
+              await client.sendMedia(msg.chat.id, {
+                type: "document",
                 file: imagePath,
                 caption: finalDescription,
-                forceDocument: true,
+                fileName: path.basename(imagePath),
               });
               try {
                 await msg.delete();
@@ -1454,9 +1455,10 @@ const speedtest = async (msg: any) => {
               const stickerPath = await convertImageToStickerWebp(imagePath);
               if (stickerPath && fs.existsSync(stickerPath)) {
                 const client = await getGlobalClient();
-                await (client as unknown as ClientInternals).sendFile(msg.chat.id, {
+                await client.sendMedia(msg.chat.id, {
+                  type: "document",
                   file: stickerPath,
-                  forceDocument: false,
+                  fileName: path.basename(stickerPath),
                   attributes: [
                     {
                       _: "documentAttributeSticker",
@@ -1464,7 +1466,7 @@ const speedtest = async (msg: any) => {
                       stickerset: { _: "inputStickerSetEmpty" },
                     },
                   ],
-                });
+                } as unknown as Parameters<typeof client.sendMedia>[1]);
                 // 清理临时文件
                 try {
                   fs.unlinkSync(imagePath);
