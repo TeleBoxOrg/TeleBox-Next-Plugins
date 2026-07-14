@@ -142,7 +142,7 @@ TeleBox-Next-Plugins 是 [TeleBox-Next](https://github.com/TeleBoxOrg/TeleBox-Ne
 - **开发语言**: TypeScript
 - **数据库**: Lowdb
 - **任务调度**: cron
-- **Telegram API**: 原生 MTProto
+- **Telegram API**: mtcute
 - **图像处理**: Sharp
 - **其他依赖**: axios, lodash 等
   
