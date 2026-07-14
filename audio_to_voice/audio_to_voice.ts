@@ -2,7 +2,7 @@ import { Plugin } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
-import type { Audio, Document, InputMediaVoice } from "@mtcute/core";
+import type { Audio, Document, InputMediaVoice, Message } from "@mtcute/core";
 import type { MtcuteFileLocation } from "@utils/mtcuteTypes";
 import fs from "fs";
 import path from "path";
@@ -17,6 +17,8 @@ const mainPrefix = prefixes[0];
 
 const execFileAsync = promisify(execFile);
 
+/** Message / MessageContext 都带 media，用于 hasAudio / getAudioDuration */
+type AudioSource = Message | MessageContext;
 
 class AudioToVoicePlugin extends Plugin {
 
@@ -34,7 +36,7 @@ class AudioToVoicePlugin extends Plugin {
     "audio_to_voice": this.handleAudioToVoice.bind(this),
   };
 
-  private hasAudio(msg: MessageContext): boolean {
+  private hasAudio(msg: AudioSource): boolean {
     if (!msg.media) return false;
 
     // Check if media is an Audio document (not a voice note)
@@ -50,7 +52,7 @@ class AudioToVoicePlugin extends Plugin {
     return false;
   }
 
-  private getAudioDuration(msg: MessageContext): number {
+  private getAudioDuration(msg: AudioSource): number {
     const media = msg.media;
     if (!media) return 0;
 
@@ -64,6 +66,27 @@ class AudioToVoicePlugin extends Plugin {
     return 0;
   }
 
+  /**
+   * 解析待转换音频来源：优先回复消息中的音频，否则用命令消息自身的音频。
+   * 与 teleproto 版 getAudio 对齐——回复场景必须下载被回复消息的 media，不能用命令消息。
+   */
+  private async getAudio(msg: MessageContext, client: NonNullable<Awaited<ReturnType<typeof getGlobalClient>>>): Promise<AudioSource | null> {
+    const replyId = msg.replyToMessage?.id;
+    if (replyId != null) {
+      const replyMessages = await safeGetMessages(client, msg.chat.id, {
+        ids: [replyId],
+      });
+      if (replyMessages.length > 0) {
+        const replyMsg = replyMessages[0];
+        if (this.hasAudio(replyMsg)) {
+          return replyMsg;
+        }
+      }
+    }
+
+    return this.hasAudio(msg) ? msg : null;
+  }
+
   private async handleAudioToVoice(msg: MessageContext): Promise<void> {
     const client = await getGlobalClient();
     if (!client) {
@@ -72,33 +95,14 @@ class AudioToVoicePlugin extends Plugin {
     }
 
     try {
-      // Check if the message itself has audio or if replying to one
-      let audioMsg: MessageContext | null = null;
-      let isReplyAudio = false;
-      
-      if (msg.replyToMessage) {
-        const replyMessages = await safeGetMessages(client, msg.chat.id, {
-          ids: [msg.replyToMessage.id!],
-        });
-        if (replyMessages && replyMessages.length > 0) {
-          const replyMsg = replyMessages[0];
-          // Check if the reply message has audio (using high-level type)
-          if (replyMsg.media && (replyMsg.media.type === 'audio' || replyMsg.media.type === 'document')) {
-            const replyMedia = replyMsg.media;
-            if (replyMedia.type === 'audio' || 
-                (replyMedia.type === 'document' && (replyMedia as Document).mimeType?.startsWith('audio/'))) {
-              isReplyAudio = true;
-            }
-          }
-        }
-      }
-
-      if (!isReplyAudio && !this.hasAudio(msg)) {
+      const audioMsg = await this.getAudio(msg, client);
+      if (!audioMsg) {
         await msg.edit({ text: "请回复一个音乐文件" });
         return;
       }
 
-      audioMsg = msg;
+      // 是否来自回复（被回复消息与命令消息不是同一条）
+      const isReplyAudio = audioMsg !== msg;
 
       await msg.edit({ text: "转换中。。。" });
 
@@ -116,7 +120,7 @@ class AudioToVoicePlugin extends Plugin {
       const oggPath = path.join(tempDir, `voice_${Date.now()}.ogg`);
 
       try {
-        // 下载音频文件
+        // 下载音频文件（必须用 audioMsg，回复场景下是被回复消息的 media）
         const media = audioMsg.media!;
         // Audio/Document extend RawDocument which extends FileLocation, compatible with downloadAsBuffer
         const buffer = await client.downloadAsBuffer(media as MtcuteFileLocation);
@@ -147,7 +151,7 @@ class AudioToVoicePlugin extends Plugin {
 
         const duration = this.getAudioDuration(audioMsg);
         
-        // 确定回复目标
+        // 确定回复目标：回复场景回落到原音频消息
         const replyToId: number | undefined = isReplyAudio ? (msg.replyToMessage?.id ?? undefined) : undefined;
         
         // 发送语音笔记
