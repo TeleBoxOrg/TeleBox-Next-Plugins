@@ -787,42 +787,6 @@ async function prepareQuoteMedia(msg: MessageContext, args: QuoteArgs): Promise<
     document,
     audio,
   };
-}> {
-  const kind = getMediaKind(msg);
-  const waveform = kind === "voice" ? voiceWaveform(msg) : undefined;
-  const voiceAttr = audioAttribute(msg);
-  const duration = Number(voiceAttr?.duration ?? voiceAttr?.voiceDuration ?? 0) || undefined;
-
-  // Glass redesign: voice/document/audio → in-bubble rows; photos/stickers keep mediaCanvas
-  const wantsVisual = args.media || args.img || kind === "photo" || kind === "sticker" || kind === "animation";
-  const mediaBuffer = await downloadMessageMedia(msg, !!wantsVisual);
-  const mediaCanvas = await mediaBufferToCanvas(mediaBuffer, kind);
-  const isSticker = kind === "sticker";
-
-  let document: { title?: string; size?: number; name?: string } | undefined;
-  let audio: { title?: string; performer?: string; duration?: number } | undefined;
-  if (kind === "document") {
-    const doc = (msg as any).document ?? (msg as any).media?.document;
-    const attrs = Array.isArray(doc?.attributes) ? doc.attributes : [];
-    const fn = attrs.find((a: any) => (a.className || a._ || "").toString().includes("Filename") || a.fileName || a.file_name);
-    const name = fn?.fileName || fn?.file_name || "file";
-    document = { title: name, name, size: Number(doc?.size ?? 0) || undefined };
-  } else if (kind === "audio") {
-    const title = voiceAttr?.title || voiceAttr?.fileName || "Audio";
-    const performer = voiceAttr?.performer || voiceAttr?.artist;
-    audio = { title, performer, duration };
-  }
-
-  return {
-    mediaBuffer,
-    mediaCanvas,
-    mediaType: mediaCanvas ? (kind || "photo") : kind,
-    mediaMaxSize: isSticker ? 220 * (args.scale || 2) : undefined,
-    mediaCrop: isSticker ? false : args.crop,
-    voice: waveform ? { waveform, duration } : undefined,
-    document,
-    audio,
-  };
 }
 
 
