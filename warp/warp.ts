@@ -958,6 +958,9 @@ class WarpPlugin extends Plugin {
         default:
           // 未知命令
           await msg.edit({
+            text: html(
+              `❌ <b>未知命令:</b> <code>${htmlEscape(sub)}</code>\n\n${helpText}`,
+            ),
           });
       }
     } catch (error: unknown) {
