@@ -11,7 +11,7 @@ import { Plugin } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import { thtml as html } from "@mtcute/html-parser";
 import { logger } from "@utils/logger";
-import { createDirectoryInAssets } from "@utils/pathHelpers";
+import { resolvePluginAssetFile } from "@utils/pathHelpers";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
 import { htmlEscape } from "@utils/htmlEscape";
@@ -128,8 +128,12 @@ class MessageModePlugin extends Plugin {
   /* ===================== 初始化数据库 ===================== */
 
   private async initDB() {
-    const dir = createDirectoryInAssets("messageMode");
-    const dbPath = path.join(dir, "config.json");
+    const dbPath = resolvePluginAssetFile({
+      plugin: "mode",
+      fileName: "config.json",
+      legacyDirs: ["messageMode"],
+      legacyFiles: [{ dir: "messageMode", fileName: "config.json" }],
+    });
 
     this.db = await JSONFilePreset(dbPath, {
       chats: {} as Record<string, Mode>,

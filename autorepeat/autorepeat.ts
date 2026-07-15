@@ -1,7 +1,7 @@
 import { Plugin } from "@utils/pluginBase";
 import { getPrefixes } from "@utils/pluginManager";
 import { getGlobalClient } from "@utils/runtimeManager";
-import { createDirectoryInAssets } from "@utils/pathHelpers";
+import { createDirectoryInAssets, resolvePluginAssetFile } from "@utils/pathHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
 import { TelegramClient } from "@mtcute/node";
 import type { Peer, Chat, User, Dialog } from "@mtcute/node";
@@ -109,10 +109,14 @@ class CacheManager {
   }
 
   private async initDb(): Promise<void> {
-    const dbPath = path.join(
-      createDirectoryInAssets("aban"),
-      CONFIG.CACHE_DB_NAME
-    );
+    const dbPath = resolvePluginAssetFile({
+      plugin: "autorepeat",
+      fileName: CONFIG.CACHE_DB_NAME,
+      legacyDirs: ["aban"],
+      legacyFiles: [{ dir: "aban", fileName: CONFIG.CACHE_DB_NAME }],
+      // keep aban dir: shared historical path; only copy into autorepeat
+      removeLegacy: false,
+    });
     const adapter = new JSONFile<CacheData>(dbPath);
     this.db = new Low(adapter, { cache: {} });
     await this.db.read();

@@ -34,7 +34,7 @@ interface RawChannelParticipants {
   chats: unknown[];
 }
 
-const CACHE_DIR = createDirectoryInAssets("clean_member_cache");
+const CACHE_DIR = createDirectoryInAssets("clean_member", ["clean_member_cache"]);
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];

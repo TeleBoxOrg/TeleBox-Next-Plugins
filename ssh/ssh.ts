@@ -3,7 +3,7 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import type { MessageContext } from "@mtcute/dispatcher";
 import { thtml as html } from "@mtcute/html-parser";
-import { createDirectoryInTemp, createDirectoryInAssets } from "@utils/pathHelpers";
+import { createDirectoryInTemp, resolvePluginAssetFile } from "@utils/pathHelpers";
 import { JSONFilePreset } from "lowdb/node";
 import * as fs from "fs";
 import * as path from "path";
@@ -181,10 +181,12 @@ class ConfigManager {
     this.initLock = true;
     
     try {
-      this.configPath = path.join(
-        createDirectoryInAssets("sshkey"),
-        "sshkey_config.json"
-      );
+      this.configPath = resolvePluginAssetFile({
+        plugin: "ssh",
+        fileName: "ssh_config.json",
+        legacyDirs: ["sshkey"],
+        legacyFiles: [{ dir: "sshkey", fileName: "sshkey_config.json" }],
+      });
       this.db = await JSONFilePreset<Record<string, string>>(
         this.configPath,
         { ...DEFAULT_CONFIG }
