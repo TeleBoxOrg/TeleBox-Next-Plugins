@@ -473,23 +473,38 @@ function emojiStatusIdFromEntity(entity: unknown): string | undefined {
   return String(documentId);
 }
 
+/** Loose document attribute shape used when reading media metadata for quotes. */
+type LooseDocAttr = {
+  duration?: number;
+  voiceDuration?: number;
+  title?: string;
+  fileName?: string;
+  file_name?: string;
+  performer?: string;
+  artist?: string;
+  waveform?: unknown;
+  className?: string;
+  _?: string;
+};
+
 function getDocumentAttributes(msg: MessageContext): unknown[] {
   const doc = (msg.media as { document?: { attributes?: unknown[] } })?.document ?? (msg.raw as { document?: { attributes?: unknown[] } })?.document;
   return doc?.attributes ?? [];
 }
 
-function audioAttribute(msg: MessageContext): unknown | undefined {
-  return getDocumentAttributes(msg).find((a: unknown) => {
+function audioAttribute(msg: MessageContext): LooseDocAttr | undefined {
+  const found = getDocumentAttributes(msg).find((a: unknown) => {
     if (!a || typeof a !== "object") return false;
     const obj = a as Record<string, { name?: string } | undefined>;
     const className = String(obj.className ?? "");
     const ctorName = obj.constructor?.name ? String(obj.constructor.name) : "";
     return (className || ctorName || "").includes("Audio");
   });
+  return found as LooseDocAttr | undefined;
 }
 
 function voiceWaveform(msg: MessageContext): number[] | undefined {
-  const attr = audioAttribute(msg) as { waveform?: unknown } | undefined;
+  const attr = audioAttribute(msg);
   const raw = attr?.waveform;
   if (!raw) return undefined;
   let arr: number[];
@@ -733,7 +748,7 @@ async function prepareQuoteMedia(msg: MessageContext, args: QuoteArgs): Promise<
   const duration = Number(voiceAttr?.duration ?? voiceAttr?.voiceDuration ?? 0) || undefined;
   const videoAttr = getDocumentAttributes(msg).find((a: any) =>
     (a.className || a.constructor?.name || a._ || "").toString().includes("Video") || a._ === "documentAttributeVideo"
-  );
+  ) as LooseDocAttr | undefined;
   const mediaDuration =
     kind === "video" || kind === "animation" || kind === "round"
       ? Number(videoAttr?.duration ?? 0) || undefined
