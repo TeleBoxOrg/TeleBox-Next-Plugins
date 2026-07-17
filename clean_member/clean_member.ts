@@ -23,6 +23,9 @@ interface RawUser {
   first_name?: string;
   last_name?: string;
   deleted?: boolean;
+  isDeleted?: boolean;
+  accessHash?: number | string | Long;
+  access_hash?: number | string | Long;
   status?: tl.TypeUserStatus;
 }
 
@@ -228,9 +231,29 @@ async function checkAdminPermissions(msg: MessageContext): Promise<boolean> {
   }
 }
 
-async function removeChatMember(client: TelegramClient, channelEntity: any, userId: number): Promise<void> {
+async function resolveParticipantPeer(client: TelegramClient, user: RawUser | number): Promise<any> {
+  // 已注销账号 resolvePeer(裸 id) 常失败；优先用完整 user 对象上的 accessHash
+  if (typeof user === "number") {
+    return await client.resolvePeer(user);
+  }
   try {
-    const userEntity = await client.resolvePeer(userId);
+    return await client.resolvePeer(user as any);
+  } catch {
+    const accessHash = (user as any).accessHash ?? (user as any).access_hash ?? 0;
+    return {
+      _: "inputPeerUser",
+      userId: user.id,
+      accessHash: typeof accessHash === "number" || typeof accessHash === "string"
+        ? Long.fromValue(accessHash as any)
+        : accessHash,
+    };
+  }
+}
+
+async function removeChatMember(client: TelegramClient, channelEntity: any, user: RawUser | number): Promise<void> {
+  const userId = typeof user === "number" ? user : Number(user.id);
+  try {
+    const userEntity = await resolveParticipantPeer(client, user);
     logger.info(`正在移出用户: ${userId}`);
     await client.call({
       _: 'channels.editBanned',
@@ -281,7 +304,7 @@ async function removeChatMember(client: TelegramClient, channelEntity: any, user
       const seconds = parseInt(errorMsg.match(/\d+/)?.[0] || "60");
       logger.info(`遇到频率限制，等待 ${seconds} 秒后重试`);
       await sleep(seconds * 1000);
-      await removeChatMember(client, channelEntity, userId);
+      await removeChatMember(client, channelEntity, user);
     } else if (errorMsg.includes("USER_NOT_PARTICIPANT")) {
       logger.info(`用户 ${userId} 已不在群组中`);
       return;
@@ -426,7 +449,9 @@ async function streamProcessMembers(options: StreamProcessOptions): Promise<Stre
               continue;
             }
           } else if (mode === "4") {
-            if ('deleted' in user && (user as { deleted?: boolean }).deleted) {
+            // deleted 标志；部分客户端字段为 isDeleted / deletedAccount
+            const u = user as { deleted?: boolean; isDeleted?: boolean };
+            if (u.deleted || u.isDeleted) {
               shouldProcess = true;
             }
           } else if (mode === "5") {
@@ -439,7 +464,7 @@ async function streamProcessMembers(options: StreamProcessOptions): Promise<Stre
               username: (user as { username?: string }).username || "",
               first_name: (user as { firstName?: string }).firstName || "",
               last_name: (user as { lastName?: string }).lastName || "",
-              is_deleted: 'deleted' in user && (user as { deleted?: boolean }).deleted || false,
+              is_deleted: Boolean((user as { deleted?: boolean; isDeleted?: boolean }).deleted || (user as { isDeleted?: boolean }).isDeleted),
               last_online: null,
             };
             if (user.status) {
@@ -465,7 +490,7 @@ async function streamProcessMembers(options: StreamProcessOptions): Promise<Stre
                 break;
               }
               try {
-                await removeChatMember(client, chatEntity, uid);
+                await removeChatMember(client, chatEntity, user);
                 result.totalRemoved++;
                 if (result.totalRemoved % 5 === 0 && statusCallback) {
                   const limitInfo = maxRemove ? ` / 上限: ${maxRemove}` : '';
