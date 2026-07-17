@@ -556,7 +556,7 @@ class WarpPlugin extends Plugin {
       // 检查 WireProxy 是否运行
       const svcCheck = await SystemExecutor.run("systemctl is-active wireproxy");
       if (!svcCheck.success || svcCheck.output !== "active") {
-        return "❌ WireProxy 未运行。请先使用 <code>${htmlEscape(mainPrefix)}warp w</code> 启动 WireProxy。";
+        return `❌ WireProxy 未运行。请先使用 <code>${htmlEscape(mainPrefix)}warp w</code> 启动 WireProxy。`;
       }
 
       // 获取当前端口
@@ -674,7 +674,7 @@ class WarpPlugin extends Plugin {
       // 检查 WireProxy 是否运行
       const svcCheck = await SystemExecutor.run("systemctl is-active wireproxy");
       if (!svcCheck.success || svcCheck.output !== "active") {
-        return "❌ WireProxy 未运行。请先使用 <code>${htmlEscape(mainPrefix)}warp w</code> 启动 WireProxy。";
+        return `❌ WireProxy 未运行。请先使用 <code>${htmlEscape(mainPrefix)}warp w</code> 启动 WireProxy。`;
       }
 
       // 获取当前端口
@@ -913,7 +913,7 @@ class WarpPlugin extends Plugin {
           await msg.edit({ text: html("🔄 正在检查环境...") });
           const wpStatus = await WireproxyManager.getStatus();
           if (wpStatus.includes("✅ 运行中")) {
-            await msg.edit({ text: html("❌ WireProxy 正在运行。请先使用 <code>${htmlEscape(mainPrefix)}warp stop</code> 停止它，然后再安装 Iptables 方案。") });
+            await msg.edit({ text: html(`❌ WireProxy 正在运行。请先使用 <code>${htmlEscape(mainPrefix)}warp stop</code> 停止它，然后再安装 Iptables 方案。`) });
             return;
           }
 
