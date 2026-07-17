@@ -133,7 +133,7 @@ TeleBox-Next-Plugins 是 [TeleBox-Next](https://github.com/TeleBoxOrg/TeleBox-Ne
 - `xmsl` - 全自动羡慕  
 - `yinglish` - 淫语翻译  
 - `yt-dlp` - YouTube 视频下载  
-- `yvlu` - 为被回复用户生成语录  
+- `yvlu` - 语录贴纸：语音/文件/音频行、转发标签、管理员头衔、视频/GIF 角标；支持 webp/image/stories 输出  
 - `zhijiao` - 掷筊 强随机 使用 笅杯卦辞廿七句  
 - `zpr` - 二次元图片  
 
