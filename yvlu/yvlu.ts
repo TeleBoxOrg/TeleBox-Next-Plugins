@@ -350,6 +350,10 @@ const help_text = `
 - 包含回复
 使用 <code>${commandName} r [消息数]</code> 回复一条消息(支持选择部分引用回复) ⚠️ 不得超过 5 条
 
+- 输出格式（默认 webp 贴纸）
+使用 <code>${commandName} webp</code> - 静态 WebP 贴纸
+使用 <code>${commandName} image</code> - 背景大图 (PNG)
+使用 <code>${commandName} stories</code> - 故事模式 (720×1280 PNG)
 
 - 保存贴纸/图片到贴纸包
 使用 <code>${commandName} s</code> 回复一张贴纸或图片,将其保存到配置的贴纸包中
@@ -450,6 +454,113 @@ function convertEntities(entities: any[]): any[] {
   });
 }
 
+// ======== quote-api 高级字段辅助函数 (mtcute) ========
+
+const QUOTE_RPC_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    if (timer.unref) timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function getDocumentAttributes(msg: any): any[] {
+  const doc = (msg as any).document ?? (msg as any).media?.document;
+  return doc?.attributes || [];
+}
+
+function audioAttribute(msg: any): any | undefined {
+  return getDocumentAttributes(msg).find((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Audio");
+  });
+}
+
+function voiceWaveform(msg: any): number[] | undefined {
+  const attr = audioAttribute(msg);
+  const raw = attr?.waveform;
+  if (!raw) return undefined;
+  let arr: number[];
+  if (Array.isArray(raw)) arr = raw.map((x: any) => Number(x) || 0);
+  else if (Buffer.isBuffer(raw) || raw instanceof Uint8Array) arr = Array.from(raw as Uint8Array).map((x) => Number(x) || 0);
+  else return undefined;
+  if (!arr.length) return undefined;
+  return arr.map((x) => Math.max(0, Math.min(31, x)));
+}
+
+function getMediaKind(msg: any): string | undefined {
+  const media: any = (msg as any).media;
+  if (!media) return undefined;
+  const type = media.type || media._ || media.className || "";
+  const attrs = getDocumentAttributes(msg);
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Sticker");
+  })) return "sticker";
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Animated");
+  }) || type.includes("Dice")) return "animation";
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Audio") && a.voice;
+  })) return "voice";
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Audio");
+  })) return "audio";
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Video") && a.roundMessage;
+  })) return "round";
+  if (attrs.some((a: any) => {
+    const t = a.type || a._ || a.className || "";
+    return t.includes("Video");
+  })) return "video";
+  if (type.includes("Photo")) return "photo";
+  if (type.includes("Geo")) return "location";
+  if (type.includes("Venue")) return "venue";
+  if (type.includes("Contact")) return "contact";
+  if (type.includes("Poll")) return "poll";
+  if (type.includes("Document")) return "document";
+  return "media";
+}
+
+async function forwardedSource(msg: any): Promise<{ peer?: any; entity?: any; name?: string; anonymous: boolean } | undefined> {
+  const fwd = msg.forward?.raw || msg.forward;
+  if (!fwd) return undefined;
+  const client = await getGlobalClient().catch(() => null);
+  if (!client) return { anonymous: true };
+  const headerName = (fwd as any).fromName || (fwd as any).savedFromName || (fwd as any).postAuthor || "";
+  const peer = (fwd as any).fromId || (fwd as any).savedFromId || (fwd as any).savedFromPeer;
+  if (peer) {
+    try {
+      const entity = await withTimeout(client.getEntity(peer), QUOTE_RPC_TIMEOUT_MS, "forwardedSource.getEntity");
+      const name = entity?.firstName || entity?.title || entity?.name || headerName || "Forwarded";
+      return { peer, entity, name, anonymous: false };
+    } catch (_) {}
+  }
+  if (headerName) return { name: headerName, anonymous: true };
+  return { anonymous: true };
+}
+
+async function senderRankInChat(msg: any, entity: any): Promise<string | undefined> {
+  if (!entity?.accessHash) return undefined;
+  try {
+    const client = await getGlobalClient().catch(() => null);
+    if (!client) return undefined;
+    const inputUser = { _: "inputUser", userId: entity.id, accessHash: entity.accessHash };
+    const result = await withTimeout(
+      client.call({ _: "channels.getParticipant", channel: msg.chat, participant: inputUser }),
+      QUOTE_RPC_TIMEOUT_MS, "senderRank.channels.getParticipant",
+    );
+    return result?.participant?.rank?.trim() || undefined;
+  } catch { return undefined; }
+}
+
 // 调用quote-api生成语录
 async function generateQuote(
   quoteData: any,
@@ -471,9 +582,10 @@ async function generateQuote(
     logger.info("quote-api响应状态:", response.status);
 
     // 推断返回图片格式：
-    // - 当 type === 'quote' 且 format === 'webp' 时，后端会生成 webp 贴纸（但 JSON 下没有 ext 字段）
-    // - 当 type === 'image' 时，后端最终输出的是 png（带背景的图片）
-    return { buffer: response.data, ext: "webp" };
+    // - 当 type === 'quote' 且 format === 'webp' 时，后端会生成 webp 贴纸
+    // - 当 type === 'image' 或 type === 'stories' 时，后端输出的是 png
+    const outExt = quoteData?.type === "quote" && quoteData?.format !== "png" ? "webp" : "png";
+    return { buffer: response.data, ext: outExt };
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       logger.error(`quote-api请求失败:`, {
@@ -562,6 +674,7 @@ class YvluPlugin extends Plugin {
       let r = false;
       let valid = false;
       let saveToSet = false;
+      let outputFormat: string | undefined = undefined; // webp / image / stories
 
       // 处理配置命令
       if (args[1] === "config") {
@@ -574,10 +687,19 @@ class YvluPlugin extends Plugin {
         valid = true;
       } else if (args[1] === "r") {
         r = true;
-        count = parseInt(args[2]) || 1;
+        if (["webp", "image", "png", "stories"].includes(args[2])) {
+          outputFormat = args[2] === "png" ? "image" : args[2];
+          count = parseInt(args[3]) || 1;
+        } else {
+          count = parseInt(args[2]) || 1;
+        }
         valid = true;
       } else if (args[1] === "s") {
         saveToSet = true;
+        valid = true;
+      } else if (["webp", "image", "png", "stories"].includes(args[1])) {
+        outputFormat = args[1] === "png" ? "image" : args[1];
+        count = parseInt(args[2]) || 1;
         valid = true;
       }
 
@@ -915,7 +1037,8 @@ class YvluPlugin extends Plugin {
               logger.error("下载媒体失败", e);
             }
 
-            items.push({
+            // 构建高级消息对象（quote-api 全字段）
+            const msgItem: any = {
               from: {
                 id: userId
                   ? parseInt(userId)
@@ -935,12 +1058,66 @@ class YvluPlugin extends Plugin {
               text: message.text || "",
               entities: entities,
               avatar: shouldShowAvatar,
-              media,
               ...(replyBlock ? { replyMessage: replyBlock } : {}),
-            });
+            };
+
+            // === quote-api glass 字段：voice / document / audio / forward / senderTag / mediaType / mediaDuration ===
+
+            // 媒体
+            if (media) msgItem.media = media;
+
+            // 转发行标签
+            if (message.forward) {
+              const fwdInfo = await forwardedSource(message).catch(() => undefined);
+              if (fwdInfo?.name) {
+                msgItem.forward = { label: fwdInfo.name };
+              }
+            }
+
+            // 管理员标签
+            if (sender && (sender as any).accessHash) {
+              const tag = await senderRankInChat(message, sender).catch(() => undefined);
+              if (tag) msgItem.senderTag = tag;
+            }
+
+            // 媒体类型高级字段
+            const mediaObj = (message as any).media;
+            if (mediaObj) {
+              const kind = getMediaKind(message as any);
+              if (kind === "voice") {
+                const waveform = voiceWaveform(message as any);
+                const attr = audioAttribute(message as any);
+                const duration = Number(attr?.duration ?? attr?.voiceDuration ?? 0) || undefined;
+                if (waveform) msgItem.voice = { waveform, ...(duration !== undefined ? { duration } : {}) };
+              } else if (kind === "document") {
+                const doc = (message as any).document ?? (message as any).media?.document;
+                const fn = doc?.attributes?.find((a: any) => {
+                  const t = a.type || a._ || a.className || "";
+                  return t.includes("Filename");
+                });
+                const name = String(fn?.fileName || fn?.file_name || "file");
+                msgItem.document = { file_name: name };
+              } else if (kind === "audio") {
+                const attr = audioAttribute(message as any);
+                const title = attr?.title || attr?.fileName || attr?.file_name || "Audio";
+                const performer = attr?.performer || attr?.artist;
+                const duration = Number(attr?.duration ?? 0) || undefined;
+                msgItem.audio = { title, ...(performer ? { performer } : {}), ...(duration !== undefined ? { duration } : {}) };
+              } else if (kind === "video" || kind === "animation" || kind === "round") {
+                const attr = getDocumentAttributes(message as any).find((a: any) => {
+                  const t = a.type || a._ || a.className || "";
+                  return t.includes("Video");
+                });
+                const mediaDuration = Number(attr?.duration ?? 0) || undefined;
+                msgItem.mediaType = kind === "animation" ? "gif" : kind === "round" ? "video" : kind;
+                if (mediaDuration) msgItem.mediaDuration = mediaDuration;
+              }
+            }
+
+            items.push(msgItem);
           }
 
-          const quoteData = {
+          const quoteData: Record<string, unknown> = {
             type: "quote",
             format: "webp",
             backgroundColor: "#1b1429",
@@ -950,6 +1127,19 @@ class YvluPlugin extends Plugin {
             emojiBrand: "apple",
             messages: items,
           };
+          // 支持动态输出格式（通过参数控制）
+          if (outputFormat === "stories") {
+            quoteData.type = "stories";
+            quoteData.format = "png";
+            quoteData.width = 360;
+            quoteData.height = 640;
+          } else if (outputFormat === "image") {
+            quoteData.type = "image";
+            quoteData.format = "png";
+          } else if (outputFormat === "webp") {
+            quoteData.type = "quote";
+            quoteData.format = "webp";
+          }
           // 生成语录贴纸（webp）
           const quoteResult = await generateQuote(quoteData);
           const imageBuffer = quoteResult.buffer;
