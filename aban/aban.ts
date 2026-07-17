@@ -338,20 +338,16 @@ class UserResolver {
         };
       }
       
-      // 纯数字 ID
+      // 纯数字 ID（mtcute 本地缓存未命中时 resolvePeer 会抛 MtPeerNotFoundError）
       if (/^-?\d+$/.test(target)) {
         const userId = parseInt(target, 10);
-        const entity = await this.safeGetEntity(client, userId);
-        const participant = entity
-          ? await this.safeGetInputEntity(client, entity)
-          : await this.resolveParticipantFromContext(client, message, userId);
-
+        const resolved = await this.resolveNumericUser(client, message, userId);
         return {
-          user: entity ? { id: Number(entity.id), firstName: entity.firstName ?? entity.first_name, lastName: entity.lastName ?? entity.last_name, username: entity.username, title: entity.title, type: (entity._ === "user" ? "user" : entity._ === "chat" ? "chat" : "channel") as "user" | "chat" | "channel" } : null,
+          user: resolved.user,
           uid: userId,
-          participant,
+          participant: resolved.participant,
           source: "numeric",
-          resolutionError: participant ? undefined : "TARGET_ENTITY_UNRESOLVABLE",
+          resolutionError: resolved.participant ? undefined : "TARGET_ENTITY_UNRESOLVABLE",
           chatType: this.getChatType(message),
         };
       }
@@ -410,13 +406,21 @@ class UserResolver {
   }
 
   private static getChatType(message: MtcuteMessageContext): "channel" | "chat" | "unknown" {
-    // mtcute Message 没有 isChannel/isGroup；类型在 chat.type
-    const chatType = (message as { chat?: { type?: string } }).chat?.type;
-    if (chatType === "channel" || chatType === "supergroup") return "channel";
-    if (chatType === "group") return "chat";
-    // 兼容旧字段 / 代理消息
+    // mtcute: Chat.type 恒为 "chat"；细分在 chat.chatType（group/supergroup/channel/...）
+    const chat = (message as { chat?: { type?: string; chatType?: string; isGroup?: boolean } }).chat;
+    const ct = chat?.chatType || "";
+    if (ct === "channel" || ct === "supergroup" || ct === "gigagroup") return "channel";
+    if (ct === "group") return "chat";
+    // Peer.type 仅 user|chat，不能用来区分超级群
     if ((message as { isChannel?: boolean }).isChannel) return "channel";
     if ((message as { isGroup?: boolean }).isGroup) return "chat";
+    // marked id -100… → channel/supergroup
+    const id = chatIdOf(message);
+    if (id !== 0) {
+      const s = String(id);
+      if (s.startsWith("-100") || id <= -1000000000000) return "channel";
+      if (id < 0) return "chat";
+    }
     return "unknown";
   }
 
@@ -496,6 +500,133 @@ class UserResolver {
     }
   }
 
+  /**
+   * 按用户数字 ID 解析 InputPeer。
+   * mtcute resolvePeer(裸 id) 仅查本地缓存；未见过的用户会 MtPeerNotFoundError。
+   * 超级群/频道：channels.getParticipant(accessHash=0) 让服务端回填 accessHash。
+   */
+  private static async resolveNumericUser(
+    client: TelegramClient,
+    message: MtcuteMessageContext,
+    userId: number,
+  ): Promise<{ user: ResolvedUser | null; participant?: tl.TypeInputPeer }> {
+    let participant = await this.safeGetInputEntity(client, userId);
+    let entity = await this.safeGetEntity(client, userId);
+
+    if (!participant) {
+      participant = await this.resolveParticipantFromContext(
+        client,
+        message,
+        userId,
+        entity as PartialEntity | undefined,
+      );
+    }
+
+    if (!participant) {
+      participant = await this.resolveUserViaGetParticipant(client, chatIdOf(message), userId);
+    }
+
+    let user: ResolvedUser | null = null;
+    if (entity) {
+      user = {
+        id: userId,
+        firstName: entity.firstName ?? entity.first_name,
+        lastName: entity.lastName ?? entity.last_name,
+        username: entity.username,
+        title: entity.title,
+        type: "user",
+        raw: entity,
+      };
+    } else if (participant) {
+      user = { id: userId, type: "user" };
+    }
+
+    return { user, participant };
+  }
+
+  /** 在频道/超级群内用裸 userId 解析成员（getParticipant + accessHash 0） */
+  private static async resolveUserViaGetParticipant(
+    client: TelegramClient,
+    chatId: number,
+    userId: number,
+  ): Promise<tl.TypeInputPeer | undefined> {
+    if (!chatId || !userId) return undefined;
+    const s = String(chatId);
+    const looksChannel = s.startsWith("-100") || chatId <= -1_000_000_000_000;
+
+    // basic group
+    if (!looksChannel && chatId < 0) {
+      try {
+        const full = await client.call({
+          _: "messages.getFullChat",
+          chatId: Math.abs(chatId),
+        } as Parameters<typeof client.call>[0]) as {
+          users?: Array<{ _?: string; id?: number; accessHash?: string | number | bigint }>;
+        };
+        const matched = (full.users || []).find(
+          (u) => Number(u?.id) === userId && u._ === "user",
+        );
+        if (matched && matched.accessHash != null) {
+          return {
+            _: "inputPeerUser",
+            userId,
+            accessHash: matched.accessHash as unknown as Long,
+          } as tl.TypeInputPeer;
+        }
+      } catch (e: unknown) {
+        logger.warn("aban: basic group resolve by id failed", e);
+      }
+      return undefined;
+    }
+
+    if (!looksChannel && chatId > 0) {
+      // 可能是未标记的 channel raw id；仍尝试 resolvePeer
+    }
+
+    try {
+      const channelPeer = await client.resolvePeer(chatId);
+      const p = channelPeer as { _: string; channelId?: number; accessHash?: Long };
+      const channelInput =
+        p._ === "inputPeerChannel"
+          ? {
+              _: "inputChannel" as const,
+              channelId: p.channelId as number,
+              accessHash: p.accessHash as Long,
+            }
+          : channelPeer;
+
+      const res = await client.call({
+        _: "channels.getParticipant",
+        channel: channelInput as unknown as MtcuteInputChannel,
+        participant: {
+          _: "inputPeerUser",
+          userId,
+          accessHash: 0 as unknown as Long,
+        },
+      } as Parameters<typeof client.call>[0]) as {
+        users?: Array<{
+          _?: string;
+          id?: number;
+          accessHash?: string | number | bigint;
+        }>;
+      };
+
+      const matched = (res.users || []).find(
+        (u) => Number(u?.id) === userId && u._ === "user",
+      );
+      if (matched && matched.accessHash != null) {
+        return {
+          _: "inputPeerUser",
+          userId,
+          accessHash: matched.accessHash as unknown as Long,
+        } as tl.TypeInputPeer;
+      }
+    } catch (e: unknown) {
+      logger.warn(`aban: getParticipant by id failed chat=${chatId} user=${userId}`, e);
+    }
+    return undefined;
+  }
+
   private static async resolveParticipantFromContext(
     client: TelegramClient,
     message: MtcuteMessageContext,
@@ -508,14 +639,21 @@ class UserResolver {
     }
 
     const chatType = this.getChatType(message);
+    const chatStr = String(chat);
     const isChannelLike =
       chatType === "channel" ||
+      chatStr.startsWith("-100") ||
+      chat <= -1_000_000_000_000 ||
       !!(message as { isChannel?: boolean }).isChannel ||
-      (message as { chat?: { type?: string } }).chat?.type === "supergroup" ||
-      (message as { chat?: { type?: string } }).chat?.type === "channel";
+      (message as { chat?: { chatType?: string } }).chat?.chatType === "supergroup" ||
+      (message as { chat?: { chatType?: string } }).chat?.chatType === "channel";
 
     if (isChannelLike) {
       try {
+        // 最快路径：getParticipant(裸 id) — 目标是成员时一次成功
+        const viaPart = await this.resolveUserViaGetParticipant(client, chat, userId);
+        if (viaPart) return viaPart;
+
         // channels.getParticipants 需要 InputChannel，不能直接塞 marked chat id
         const channelPeer = await client.resolvePeer(chat);
         let offset = 0;
@@ -537,6 +675,14 @@ class UserResolver {
           );
           const matchedUser = users.find((u) => Number(u?.id) === userId);
           if (matchedUser) {
+            const ah = (matchedUser as { accessHash?: string | number | bigint }).accessHash;
+            if (ah != null) {
+              return {
+                _: "inputPeerUser",
+                userId,
+                accessHash: ah as unknown as Long,
+              } as tl.TypeInputPeer;
+            }
             const input = await this.safeGetInputEntity(client, matchedUser);
             if (input) {
               return input;
