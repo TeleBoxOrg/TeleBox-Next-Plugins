@@ -254,6 +254,7 @@ type QuoteArgs = {
   backgroundColor: string;
   emojiBrand: string;
   emojiSuffix: string;
+  fabricateText?: string;
 };
 
 type QuoteUser = {
@@ -411,6 +412,11 @@ function parseArgs(text: string): QuoteArgs {
       out.count = Math.max(-MAX_QUOTE_MESSAGES, Math.min(MAX_QUOTE_MESSAGES, n));
       continue;
     }
+
+    // Not a known flag → part of fabricate text (造谣模式)
+    // collect all remaining tokens as the custom message text
+    out.fabricateText = args.slice(i).join(" ");
+    break;
   }
 
   out.emojiSuffix = `${QUOTE_EMOJIS}${EMOJI_SUFFIXES[Math.floor(Math.random() * EMOJI_SUFFIXES.length)]}💜`;
@@ -1551,6 +1557,11 @@ async function toQuoteMessage(msg: MessageContext, args: QuoteArgs): Promise<any
   const fwd = await forwardedSource(msg);
   const effectiveEntity = fwd?.entity ?? entity;
   const effectiveName = fwd?.name || displayName(effectiveEntity);
+  // 造谣模式：保留发送者信息，替换消息文本为自定义内容
+  const text = args.fabricateText || messageText(msg);
+  const entities = args.fabricateText ? [] as any[] : convertEntities(msg);
+  const caption = args.fabricateText ? text : messageText(msg);
+  const caption_entities = args.fabricateText ? [] as any[] : convertEntities(msg);
   const [avatarBuffer, media, replyMessage] = await Promise.all([
     fwd && !fwd.anonymous && fwd.entity
       ? downloadEntityAvatar(await getGlobalClient().catch((e) => { logger.warn("[quote] emojiStatus: getGlobalClient failed", getErrorMessage(e)); return null; }), fwd.entity)
@@ -1580,10 +1591,10 @@ async function toQuoteMessage(msg: MessageContext, args: QuoteArgs): Promise<any
     avatar: !args.hidden && !!avatarBuffer,
     avatarBuffer: args.hidden ? undefined : avatarBuffer,
     avatarScale: args.scale,
-    text: messageText(msg),
-    entities: convertEntities(msg),
-    caption: messageText(msg),
-    caption_entities: convertEntities(msg),
+    text,
+    entities,
+    caption,
+    caption_entities,
     replyMessage,
     forward: fwd ? { label: fwd.name || "Forwarded message" } : undefined,
     mediaBuffer: media.mediaBuffer,
@@ -1607,6 +1618,10 @@ async function collectMessages(msg: MessageContext, args: QuoteArgs): Promise<an
     logger.debug('[quote] collectMessages safeGetReplyMessage failed:', e);
     return undefined;
   });
+  // 造谣模式：只取回复的那一条消息，不管 count 参数
+  if (args.fabricateText) {
+    return reply ? [reply] : [msg];
+  }
   const count = args.count || 1;
 
   const peer = msg.chat;
