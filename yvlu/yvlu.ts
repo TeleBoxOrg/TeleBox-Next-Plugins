@@ -586,15 +586,10 @@ async function generateQuote(
   try {
     const response = await axios({
       method: "post",
+      url: "https://bot.lyo.su/quote/generate",
       timeout,
       data: quoteData,
       responseType: "arraybuffer",
-      ...JSON.parse(
-        Buffer.from(
-          "eyJ1cm...ifX0=",
-          "base64",
-        ).toString("utf-8"),
-      ),
     });
 
     logger.info("quote-api响应状态:", response.status);
