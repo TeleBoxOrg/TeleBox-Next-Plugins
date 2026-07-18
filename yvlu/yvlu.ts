@@ -1,6 +1,14 @@
 //@ts-nocheck
 import { safeGetMe } from "@utils/authGuards";
 import { htmlEscape } from "@utils/htmlEscape";
+
+import { Long } from "@mtcute/core";
+
+function toTlLong(id: string | number | bigint): any {
+  if (typeof id === "bigint") return Long.fromString(id.toString());
+  return Long.fromString(String(id));
+}
+
 // YVLU Plugin - 生成文字语录贴纸
 import axios from "axios";
 import _ from "lodash";
@@ -43,14 +51,45 @@ async function downloadCustomEmojiBuffer(client: any, emojiId: string): Promise<
   if (!client || !emojiId) return undefined;
   if (customEmojiCache.has(emojiId)) return customEmojiCache.get(emojiId);
   try {
-    // Use mtcute high-level API: returns Sticker[] which are FileLocation subclasses
-    const stickers = await client.getCustomEmojis([BigInt(emojiId)]);
-    const sticker = stickers?.[0];
-    if (!sticker) {
+    // 1) High-level API
+    try {
+      const stickers = await client.getCustomEmojis([toTlLong(emojiId)]);
+      const sticker = stickers?.[0];
+      if (sticker) {
+        const data = await client.downloadAsBuffer(sticker);
+        const buffer = Buffer.from(data);
+        if (Buffer.isBuffer(buffer) && buffer.length > 0) {
+          customEmojiCache.set(emojiId, buffer);
+          return buffer;
+        }
+      }
+    } catch (e: unknown) {
+      logger.warn("getCustomEmojis 下载失败，回退 raw TL", e);
+    }
+    // 2) Raw TL + Long ids (BigInt 会被 mtcute 当成空 document)
+    const docs = await client.call({
+      _: "messages.getCustomEmojiDocuments",
+      documentId: [toTlLong(emojiId)],
+    });
+    const doc = Array.isArray(docs) ? docs[0] : null;
+    if (!doc || doc._ !== "document") {
       customEmojiCache.set(emojiId, undefined);
       return undefined;
     }
-    const data = await client.downloadAsBuffer(sticker);
+    const location = {
+      _: "inputDocumentFileLocation",
+      id: toTlLong(doc.id),
+      accessHash: toTlLong(doc.accessHash),
+      fileReference: doc.fileReference,
+      thumbSize: "",
+    };
+    let data: any;
+    try {
+      const { FileLocation } = await import("@mtcute/core");
+      data = await client.downloadAsBuffer(new FileLocation(location, Number(doc.size) || undefined, doc.dcId));
+    } catch {
+      data = await client.downloadAsBuffer(location as any, { dcId: doc.dcId, fileSize: doc.size } as any);
+    }
     const buffer = Buffer.from(data);
     if (Buffer.isBuffer(buffer) && buffer.length > 0) {
       customEmojiCache.set(emojiId, buffer);
@@ -64,6 +103,7 @@ async function downloadCustomEmojiBuffer(client: any, emojiId: string): Promise<
     return undefined;
   }
 }
+
 
 const hashCode = (s: any) => {
   const l = s.length;
@@ -799,11 +839,21 @@ class YvluPlugin extends Plugin {
         try {
           const client = await getGlobalClient();
 
-          const messages = await safeGetMessages(msg.client, msg.chat, {
-            offsetId: replied!.id,
-            limit: count,
-            reverse: true,
-          });
+          // count=1 直接用被回复消息；多条用 minId 保证包含 replied（mtcute reverse offset 语义不稳）
+          let messages: any[];
+          if (count <= 1) {
+            messages = [replied];
+          } else {
+            const history = await client.getHistory(msg.chat, {
+              minId: replied!.id,
+              limit: count,
+              reverse: true,
+            }).catch(() => []);
+            messages = Array.isArray(history) ? history : [];
+            if (!messages.some((m: any) => Number(m?.id) === Number(replied.id))) {
+              messages = [replied, ...messages].slice(0, count);
+            }
+          }
 
           if (!messages || messages.length === 0) {
             await msg.edit({ text: "未找到消息" });

@@ -7,6 +7,15 @@ import * as path from "path";
 import * as os from "os";
 import { createDirectoryInTemp } from "@utils/pathHelpers";
 import { npm_install } from "@utils/npm_install";
+
+import { Long } from "@mtcute/core";
+
+function toTlLong(id: string | number | bigint): any {
+  // mtcute TL layer requires Long, not JS BigInt (BigInt yields documentEmpty)
+  if (typeof id === "bigint") return Long.fromString(id.toString());
+  return Long.fromString(String(id));
+}
+
 const { execFile } = require("child_process");
 import { safeGetReplyMessage, safeGetMessages } from "@utils/safeGetMessages";
 import { getPrefixes } from "@utils/pluginManager";
@@ -275,7 +284,7 @@ type QuoteUser = {
   name: string | false;
   first_name: string | false;
   photo: Record<string, never>;
-  emoji_status?: { documentId?: bigint | number; document_id?: bigint | number; customEmojiId?: bigint | number; custom_emoji_id?: bigint | number; id?: bigint | number } | null;
+  emoji_status?: { custom_emoji_id?: string; customEmojiBuffer?: Buffer; documentId?: bigint | number; document_id?: bigint | number; customEmojiId?: bigint | number; id?: bigint | number } | string | null;
 };
 
 function generateRandomColor(): string {
@@ -551,12 +560,12 @@ function quoteSenderKey(message: unknown): string {
   return n ? String(n) : "";
 }
 
-function emojiStatusPayload(entity: unknown, customEmojiBuffer?: Buffer): { custom_emoji_id?: number | bigint; customEmojiBuffer?: Buffer } | undefined {
+function emojiStatusPayload(entity: unknown, customEmojiBuffer?: Buffer): { custom_emoji_id: string; customEmojiBuffer?: Buffer } | undefined {
   const id = emojiStatusIdFromEntity(entity);
   if (!id) return undefined;
-  const num = Number(id);
-  if (Number.isFinite(num) && Math.abs(num) < Number.MAX_SAFE_INTEGER) return { custom_emoji_id: num, customEmojiBuffer };
-  try { return { custom_emoji_id: BigInt(id), customEmojiBuffer }; } catch { return undefined; }
+  // Always keep string IDs — Number loses precision above MAX_SAFE_INTEGER and
+  // vendor map lookups are string-keyed.
+  return { custom_emoji_id: id, ...(customEmojiBuffer ? { customEmojiBuffer } : {}) };
 }
 
 function displayName(entity: unknown): string {
@@ -651,15 +660,28 @@ function emojiStatusIdFromEntity(entity: unknown): string | undefined {
   const obj = entity as Record<string, unknown>;
   const status = obj.emojiStatus ?? obj.emoji_status;
   if (!status) return undefined;
-  if (typeof status !== "object") {
-    // Primitive value (bigint, number, string) — treat as direct document ID
-    const id = (status as any)?.value ?? status;
-    return id ? String(id) : undefined;
+  // mtcute EmojiStatus: getter `.emoji` returns Long/document id
+  if (typeof status === "object" && status !== null) {
+    const statusObj = status as Record<string, unknown>;
+    // Prefer high-level getter if present (mtcute EmojiStatus.emoji)
+    try {
+      const viaGetter = (status as { emoji?: unknown }).emoji;
+      if (viaGetter != null && viaGetter !== "") return String(viaGetter);
+    } catch { /* ignore */ }
+    const documentId =
+      statusObj.emoji ??
+      statusObj.documentId ??
+      statusObj.document_id ??
+      statusObj.customEmojiId ??
+      statusObj.custom_emoji_id ??
+      statusObj.id ??
+      (statusObj.raw as Record<string, unknown> | undefined)?.documentId ??
+      (statusObj.raw as Record<string, unknown> | undefined)?.document_id;
+    if (documentId != null && documentId !== "") return String(documentId);
+    return undefined;
   }
-  const statusObj = status as Record<string, unknown>;
-  const documentId = statusObj.emoji ?? statusObj.documentId ?? statusObj.document_id ?? statusObj.customEmojiId ?? statusObj.custom_emoji_id ?? statusObj.id;
-  if (!documentId) return undefined;
-  return String(documentId);
+  // Primitive value (bigint, number, string)
+  return status ? String((status as any)?.value ?? status) : undefined;
 }
 
 /** Loose document attribute shape used when reading media metadata for quotes. */
@@ -1236,22 +1258,43 @@ function customEmojiThumbs(doc: any): any[] {
 
 async function downloadCustomEmojiAnimatedPreferred(client: any, doc: any): Promise<Buffer | undefined> {
   const t0 = Date.now();
-  // doc is already a mtcute Sticker (FileLocation subclass) from getCustomEmojis
+  // Accept either mtcute Sticker/FileLocation OR raw TL document
   const id = String(doc?.raw?.id ?? doc?.id ?? doc?.documentId ?? doc?.document_id ?? "");
   const mime = doc?.mimeType || doc?.mime_type || doc?.raw?.mimeType || "";
-  logger.warn("quote emoji source scan", id, "docMime", mime, "mode", "mtcute-sticker-filelocation");
+  logger.warn("quote emoji source scan", id, "docMime", mime, "mode", "native-download");
   const td = Date.now();
   try {
-    const data = await client.downloadAsBuffer(doc);
+    let data: Uint8Array | Buffer | undefined;
+    // If it's already a FileLocation-like object (has downloadable location), use directly
+    if (doc && (typeof doc.location !== "undefined" || doc.constructor?.name === "Sticker" || doc.constructor?.name === "Document" || doc.constructor?.name === "RawDocument")) {
+      data = await client.downloadAsBuffer(doc);
+    } else if (doc && doc._ === "document") {
+      const location: any = {
+        _: "inputDocumentFileLocation",
+        id: toTlLong(doc.id),
+        accessHash: toTlLong(doc.accessHash),
+        fileReference: doc.fileReference,
+        thumbSize: "",
+      };
+      try {
+        const { FileLocation } = await import("@mtcute/core");
+        data = await client.downloadAsBuffer(new FileLocation(location, Number(doc.size) || undefined, doc.dcId));
+      } catch {
+        data = await client.downloadAsBuffer(location, { dcId: doc.dcId, fileSize: doc.size } as any);
+      }
+    } else {
+      data = await client.downloadAsBuffer(doc);
+    }
     const original = data && data.length > 0 ? Buffer.from(data) : undefined;
     logger.warn("quote emoji source selected", id, "original", original?.length || 0, bufferKind(original), "downloadMs", quoteMs(td), "totalMs", quoteMs(t0));
     return original;
   } catch (e) {
-    logger.debug('[quote] downloadAsBuffer failed:', e);
+    logger.warn("[quote] custom emoji download failed", id, getErrorMessage(e));
     logger.warn("quote emoji source selected", id, "original", 0, "none", "downloadMs", quoteMs(td), "totalMs", quoteMs(t0));
     return undefined;
   }
 }
+
 function collectAnimatedMediaMessages(messages: any[]): any[] {
   const out: any[] = [];
   const scan = (message: any) => {
@@ -1422,70 +1465,123 @@ async function normalizeCustomEmojiBuffer(buffer: Buffer | undefined): Promise<B
   }
 }
 
-async function getCustomEmojiDocuments(client: any, ids: string[]): Promise<any[]> {
-  const unique = Array.from(new Set(ids.filter(Boolean)));
+async function getCustomEmojiDocuments(client: any, ids: string[]): Promise<Array<{ id: string; doc: any }>> {
+  const unique = Array.from(new Set(ids.map(String).filter(Boolean)));
   if (!client || unique.length === 0) return [];
+  const out: Array<{ id: string; doc: any }> = [];
+
+  // 1) High-level API first (returns Sticker FileLocations, may be null for edge types)
   try {
-    // Use mtcute high-level API; returns (Sticker|null)[] which are FileLocation
-    const stickers = await client.getCustomEmojis(unique.map((id) => BigInt(id)));
-    return (stickers || []).filter(Boolean);
+    const stickers = await client.getCustomEmojis(unique.map((id) => toTlLong(id)));
+    for (let i = 0; i < unique.length; i++) {
+      if (stickers?.[i]) out.push({ id: unique[i], doc: stickers[i] });
+    }
+    if (out.length === unique.length) return out;
   } catch (err: unknown) {
-    logger.warn("quote custom emoji fetch failed", getErrorMessage(err));
-    return [];
+    logger.warn("quote getCustomEmojis failed, falling back to raw TL", getErrorMessage(err));
   }
+
+  // 2) Raw TL — always returns document objects when IDs are valid
+  try {
+    const missing = unique.filter((id) => !out.some((x) => x.id === id));
+    if (missing.length === 0) return out;
+    const docs = await client.call({
+      _: "messages.getCustomEmojiDocuments",
+      documentId: missing.map((id) => toTlLong(id)),
+    });
+    const list = Array.isArray(docs) ? docs : [];
+    for (let i = 0; i < missing.length; i++) {
+      const d = list[i];
+      if (d && d._ === "document") {
+        out.push({ id: missing[i], doc: d });
+      } else {
+        logger.warn("quote custom emoji raw empty", missing[i], d?._, d?.id?.toString?.());
+      }
+    }
+  } catch (err: unknown) {
+    logger.warn("quote custom emoji raw fetch failed", getErrorMessage(err));
+  }
+  return out;
 }
 
 async function hydrateCustomEmojiBuffers(client: any, messages: any[]): Promise<void> {
   const ids: string[] = [];
+  const pushId = (raw: unknown) => {
+    if (raw == null || raw === "") return;
+    const id = String(raw);
+    if (id && id !== "0" && !customEmojiCache.get(id) && !ids.includes(id)) ids.push(id);
+  };
   const scanEntity = (entity: any) => {
-    const id = entity?.custom_emoji_id;
-    if (id && !customEmojiCache.get(String(id))) ids.push(String(id));
+    pushId(entity?.custom_emoji_id ?? entity?.customEmojiId);
   };
   const scanMessage = (message: any) => {
+    if (!message) return;
     (message.entities || []).forEach(scanEntity);
     (message.caption_entities || []).forEach(scanEntity);
-    const statusId = message.from?.emoji_status?.custom_emoji_id || message.from?.emoji_status?.customEmojiId || message.emoji_status?.custom_emoji_id || message.emoji_status?.customEmojiId;
-    if (statusId && !customEmojiCache.get(String(statusId))) ids.push(String(statusId));
+    const status = message.from?.emoji_status ?? message.emoji_status;
+    if (status != null) {
+      if (typeof status === "object") {
+        pushId(status.custom_emoji_id ?? status.customEmojiId ?? status.documentId ?? status.id);
+      } else {
+        pushId(status);
+      }
+    }
     if (message.replyMessage) scanMessage(message.replyMessage);
     if (message.forward) scanMessage(message.forward);
   };
   messages.forEach(scanMessage);
+  logger.warn("quote hydrate custom emoji ids", { count: ids.length, ids: ids.slice(0, 10) });
+  if (ids.length === 0) return;
+
   const docs = await getCustomEmojiDocuments(client, ids);
-  await runWithConcurrency(docs, EMOJI_FETCH_CONCURRENCY, async (doc: any) => {
-    const id = String(doc?.raw?.id ?? doc?.id ?? doc?.documentId ?? doc?.document_id ?? "");
-    if (!id) return;
-    let rawBuffer = await downloadCustomEmojiAnimatedPreferred(client, doc);
+  await runWithConcurrency(docs, EMOJI_FETCH_CONCURRENCY, async (entry: { id: string; doc: any }) => {
+    const id = entry.id;
+    let rawBuffer = await downloadCustomEmojiAnimatedPreferred(client, entry.doc);
     const wasAnimated = looksLikeAnimatedEmoji(rawBuffer);
     if (isAnimatedRasterBuffer(rawBuffer)) animatedCustomEmojiCache.set(id, rawBuffer);
     const buffer = await normalizeCustomEmojiBuffer(rawBuffer);
     customEmojiCache.set(id, buffer);
-    logger.warn("quote custom emoji loaded", id, buffer ? buffer.length : 0, wasAnimated ? "animated-converted" : "static", "source", isGifBuffer(rawBuffer) ? "gif" : isWebmBuffer(rawBuffer) ? "webm" : "other", "mime", doc.mimeType || doc.mime_type || doc?.raw?.mimeType || "", "thumbs", doc.thumbs?.length || 0, "videoThumbs", doc.videoThumbs?.length || doc.video_thumbs?.length || 0);
-  });
-  const loadedDocIds = new Set(docs.map((doc: any) => String(doc?.raw?.id ?? doc?.id ?? doc?.documentId ?? doc?.document_id ?? "")).filter(Boolean));
-  ids.forEach((id) => {
-    if (!loadedDocIds.has(id)) logger.warn("quote custom emoji document missing", id);
-    else if (!customEmojiCache.get(id)) logger.warn("quote custom emoji buffer missing", id);
+    logger.warn(
+      "quote custom emoji loaded",
+      id,
+      buffer ? buffer.length : 0,
+      wasAnimated ? "animated-converted" : "static",
+      "source",
+      isGifBuffer(rawBuffer) ? "gif" : isWebmBuffer(rawBuffer) ? "webm" : "other",
+    );
   });
 
   const applyEntity = (entity: any) => {
-    const id = entity?.custom_emoji_id;
-    if (!id) return;
-    const buffer = customEmojiCache.get(String(id));
-    if (buffer) entity.customEmojiBuffer = buffer;
-    else logger.warn("quote custom emoji apply missing", String(id));
+    const id = entity?.custom_emoji_id ?? entity?.customEmojiId;
+    if (id == null) return;
+    const key = String(id);
+    const buffer = customEmojiCache.get(key);
+    if (buffer) {
+      entity.custom_emoji_id = key; // normalize to string for vendor map lookup
+      entity.customEmojiBuffer = buffer;
+    } else {
+      logger.warn("quote custom emoji apply missing", key);
+    }
   };
   const applyMessage = (message: any) => {
+    if (!message) return;
     (message.entities || []).forEach(applyEntity);
     (message.caption_entities || []).forEach(applyEntity);
-    const statusId = message.from?.emoji_status?.custom_emoji_id || message.from?.emoji_status?.customEmojiId || message.emoji_status?.custom_emoji_id || message.emoji_status?.customEmojiId;
-    if (statusId) {
-      const buffer = customEmojiCache.get(String(statusId));
-      if (buffer) {
-        logger.warn("quote sender emoji status cached", String(statusId), buffer.length);
-        if (message.from?.emoji_status) message.from.emoji_status.customEmojiBuffer = buffer;
-        if (message.emoji_status) message.emoji_status.customEmojiBuffer = buffer;
+    const status = message.from?.emoji_status ?? message.emoji_status;
+    if (status != null) {
+      let key: string | undefined;
+      if (typeof status === "object") {
+        key = String(status.custom_emoji_id ?? status.customEmojiId ?? status.documentId ?? status.id ?? "");
       } else {
-        logger.warn("quote sender emoji status missing", String(statusId));
+        key = String(status);
+      }
+      if (key && key !== "undefined" && key !== "") {
+        const buffer = customEmojiCache.get(key);
+        const payload = { custom_emoji_id: key, ...(buffer ? { customEmojiBuffer: buffer } : {}) };
+        if (message.from) message.from.emoji_status = payload;
+        message.emoji_status = payload;
+        if (buffer) logger.warn("quote sender emoji status cached", key, buffer.length);
+        else logger.warn("quote sender emoji status missing", key);
       }
     }
     if (message.replyMessage) applyMessage(message.replyMessage);
@@ -1629,11 +1725,16 @@ async function collectMessages(msg: MessageContext, args: QuoteArgs): Promise<an
   if (reply) {
     const baseId = reply.id;
     if (!baseId || Math.abs(count) <= 1) return [reply];
+    // minId/maxId 都不包含边界 id 本身，所以额外拉 limit-1 条再把 reply 拼回去
     const limit = Math.min(Math.abs(count), MAX_QUOTE_MESSAGES);
+    const extra = Math.max(0, limit - 1);
     const messages = count > 0
-      ? await withTimeout(client.getHistory(peer, { minId: baseId, limit, reverse: true }), QUOTE_RPC_TIMEOUT_MS, "collectMessages.getMessages.reply").catch(() => [] as Message[])
-      : await withTimeout(client.getHistory(peer, { maxId: baseId, limit }), QUOTE_RPC_TIMEOUT_MS, "collectMessages.getMessages.reply").catch(() => [] as Message[]);
-    const result = (Array.isArray(messages) ? messages : []).filter(isApiMessage).sort((a: any, b: any) => a.id - b.id);
+      ? await withTimeout(client.getHistory(peer, { minId: baseId, limit: extra, reverse: true }), QUOTE_RPC_TIMEOUT_MS, "collectMessages.getMessages.reply").catch(() => [] as Message[])
+      : await withTimeout(client.getHistory(peer, { maxId: baseId, limit: extra }), QUOTE_RPC_TIMEOUT_MS, "collectMessages.getMessages.reply").catch(() => [] as Message[]);
+    const others = (Array.isArray(messages) ? messages : []).filter(isApiMessage).filter((m: any) => Number(m.id) !== Number(baseId));
+    const result = count > 0
+      ? [reply, ...others].sort((a: any, b: any) => a.id - b.id).slice(0, limit)
+      : [...others, reply].sort((a: any, b: any) => a.id - b.id).slice(-limit);
     logger.warn("quote collect messages", { reply: true, count, baseId, got: result.map((m: any) => m.id) });
     return result.length ? result : [reply];
   }
