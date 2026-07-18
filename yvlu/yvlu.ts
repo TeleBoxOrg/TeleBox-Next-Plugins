@@ -37,6 +37,36 @@ const execFileAsync = promisify(execFile);
 const timeout = 60000; // 超时
 const PYTHON_PATH = "python3"; // Python 路径，可修改为 venv 中的路径，如："/path/to/venv/bin/python"
 
+const customEmojiCache = new Map<string, Buffer | undefined>();
+
+async function downloadCustomEmojiBuffer(client: any, emojiId: string): Promise<Buffer | undefined> {
+  if (!client || !emojiId) return undefined;
+  if (customEmojiCache.has(emojiId)) return customEmojiCache.get(emojiId);
+  try {
+    const docs = await client.call({
+      _: 'messages.getCustomEmojiDocuments',
+      documentId: [BigInt(emojiId)],
+    });
+    const doc = docs?.[0];
+    if (!doc) {
+      customEmojiCache.set(emojiId, undefined);
+      return undefined;
+    }
+    const data = await client.downloadAsBuffer(doc);
+    const buffer = Buffer.from(data);
+    if (Buffer.isBuffer(buffer) && buffer.length > 0) {
+      customEmojiCache.set(emojiId, buffer);
+      return buffer;
+    }
+    customEmojiCache.set(emojiId, undefined);
+    return undefined;
+  } catch (e: unknown) {
+    logger.warn("下载自定义表情失败", e);
+    customEmojiCache.set(emojiId, undefined);
+    return undefined;
+  }
+}
+
 const hashCode = (s: any) => {
   const l = s.length;
   let h = 0;
@@ -862,6 +892,7 @@ class YvluPlugin extends Plugin {
             previousUserIdentifier = currentUserIdentifier;
 
             let photo: { url: string } | undefined = undefined;
+            let emojiStatusPayload: { custom_emoji_id: string; customEmojiBuffer: Buffer } | undefined;
             if (shouldShowAvatar) {
               try {
                 const buffer = await downloadProfilePhotoBuffer(client, sender as EntityLike);
@@ -875,6 +906,22 @@ class YvluPlugin extends Plugin {
                 }
               } catch (e: unknown) {
                 logger.warn("下载用户头像失败", e);
+              }
+
+              // 下载状态自定义表情
+              if (emojiStatus) {
+                try {
+                  const emojiId = String(emojiStatus);
+                  const emojiBuffer = await downloadCustomEmojiBuffer(client, emojiId);
+                  if (emojiBuffer) {
+                    emojiStatusPayload = {
+                      custom_emoji_id: emojiId,
+                      customEmojiBuffer: emojiBuffer,
+                    };
+                  }
+                } catch (e: unknown) {
+                  logger.warn("下载状态表情失败", e);
+                }
               }
             }
 
@@ -1096,8 +1143,8 @@ class YvluPlugin extends Plugin {
                 username:
                   photo && shouldShowAvatar ? username || undefined : undefined,
                 photo,
-                emoji_status: shouldShowAvatar && emojiStatus
-                  ? { custom_emoji_id: String(emojiStatus) }
+                emoji_status: shouldShowAvatar
+                  ? (emojiStatusPayload || (emojiStatus ? { custom_emoji_id: String(emojiStatus) } : undefined))
                   : undefined,
               },
               text: message.text || "",
