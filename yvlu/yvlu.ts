@@ -579,6 +579,26 @@ async function senderRankInChat(msg: any, entity: any): Promise<string | undefin
   } catch { return undefined; }
 }
 
+const QUOTE_API_URL = "https://quote-api-enhanced.zhetengsha.eu.org/generate.webp";
+const QUOTE_API_HEADERS = {
+  "Content-Type": "application/json",
+  "User-Agent": "TeleBox/0.2.1",
+};
+
+function detectQuoteImageExt(buffer: Buffer): "webp" | "png" {
+  if (
+    buffer.length >= 12 &&
+    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+    buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  ) return "webp";
+  if (
+    buffer.length >= 8 &&
+    buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  ) return "png";
+  const preview = buffer.subarray(0, 120).toString("utf8").replace(/\s+/g, " ").trim();
+  throw new Error(`quote-api 返回了非图片数据${preview ? `：${preview.slice(0, 100)}` : ""}`);
+}
+
 // 调用quote-api生成语录
 async function generateQuote(
   quoteData: any,
@@ -586,19 +606,26 @@ async function generateQuote(
   try {
     const response = await axios({
       method: "post",
-      url: "https://bot.lyo.su/quote/generate",
+      url: QUOTE_API_URL,
+      headers: QUOTE_API_HEADERS,
       timeout,
       data: quoteData,
       responseType: "arraybuffer",
+      transformResponse: [(data) => data],
+      validateStatus: () => true,
     });
 
     logger.info("quote-api响应状态:", response.status);
-
-    // 推断返回图片格式：
-    // - 当 type === 'quote' 且 format === 'webp' 时，后端会生成 webp 贴纸
-    // - 当 type === 'image' 或 type === 'stories' 时，后端输出的是 png
-    const outExt = quoteData?.type === "quote" && quoteData?.format !== "png" ? "webp" : "png";
-    return { buffer: response.data, ext: outExt };
+    const imageBuffer = Buffer.from(response.data);
+    if (response.status < 200 || response.status >= 300) {
+      const detail = imageBuffer.subarray(0, 160).toString("utf8").replace(/\s+/g, " ").trim();
+      throw new Error(`quote-api HTTP ${response.status}${detail ? `：${detail.slice(0, 120)}` : ""}`);
+    }
+    const contentType = String(response.headers["content-type"] || "").toLowerCase();
+    if (!contentType.startsWith("image/") && contentType !== "application/octet-stream") {
+      throw new Error(`quote-api 返回类型异常：${contentType || "unknown"}`);
+    }
+    return { buffer: imageBuffer, ext: detectQuoteImageExt(imageBuffer) };
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       logger.error(`quote-api请求失败:`, {
@@ -611,6 +638,15 @@ async function generateQuote(
     }
     throw error;
   }
+}
+
+async function downloadProfilePhotoBuffer(client: any, sender: EntityLike): Promise<Buffer | undefined> {
+  const photos = await client.getProfilePhotos(sender as any, { limit: 1 });
+  const photo = photos?.[0];
+  if (!photo) return undefined;
+  const data = await client.downloadAsBuffer(photo);
+  const buffer = Buffer.from(data);
+  return buffer.length > 0 ? buffer : undefined;
 }
 
 interface YvluConfig {
@@ -827,12 +863,7 @@ class YvluPlugin extends Plugin {
             let photo: { url: string } | undefined = undefined;
             if (shouldShowAvatar) {
               try {
-                const buffer = await client.downloadProfilePhoto(
-                  sender as EntityLike,
-                  {
-                    isBig: false,
-                  },
-                );
+                const buffer = await downloadProfilePhotoBuffer(client, sender as EntityLike);
                 if (Buffer.isBuffer(buffer) && buffer.length > 0) {
                   const base64 = buffer.toString("base64");
                   photo = {
@@ -1214,24 +1245,30 @@ class YvluPlugin extends Plugin {
                 } catch (e: unknown) { logger.warn('[yvlu] 清理临时文件失败:', e) }
               }
             } else {
-              // webp/png 格式：发送为静态贴纸
               const uniqueId = Date.now().toString();
-              const stickerPath = path.join(tmpDir, `sticker_${uniqueId}.${imageExt}`);
+              const outputPath = path.join(tmpDir, `quote_${uniqueId}.${imageExt}`);
 
               try {
-                fs.writeFileSync(stickerPath, imageBuffer);
+                fs.writeFileSync(outputPath, imageBuffer);
 
-                await client.sendMedia(msg.chat.id, {
-                  type: "sticker",
-                  file: stickerPath,
-                  fileMime: imageExt === "webp" ? "image/webp" : "image/png",
-                  alt: "📝",
-                }, { replyTo: replied?.id });
-
-                logger.info("[yvlu] 静态贴纸发送成功");
+                if (imageExt === "webp") {
+                  await client.sendMedia(msg.chat.id, {
+                    type: "sticker",
+                    file: outputPath,
+                    fileMime: "image/webp",
+                    alt: "📝",
+                  }, { replyTo: replied?.id });
+                  logger.info("[yvlu] 静态贴纸发送成功");
+                } else {
+                  await client.sendMedia(msg.chat.id, {
+                    type: "photo",
+                    file: outputPath,
+                  }, { replyTo: replied?.id });
+                  logger.info("[yvlu] PNG 图片发送成功");
+                }
               } finally {
                 try {
-                  fs.unlinkSync(stickerPath);
+                  fs.unlinkSync(outputPath);
                 } catch (e: unknown) { logger.warn('[yvlu] 清理临时文件失败:', e) }
               }
             }
