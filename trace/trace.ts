@@ -172,8 +172,9 @@ class TracePlugin extends Plugin {
     if (this.meId === null) {
         const client = await getGlobalClient();
         if (client) {
-            const me = await client.getMe() as { premium?: boolean; id?: number | bigint } | undefined;
-            this.isPremium = me?.premium || false;
+            const me = await client.getMe() as { isPremium?: boolean; id?: number | bigint } | undefined;
+            // mtcute User has isPremium getter, not raw .premium
+            this.isPremium = !!(me?.isPremium);
             this.meId = me?.id != null ? String(me.id) : null;
         } else {
             this.isPremium = false;
@@ -572,19 +573,13 @@ class TracePlugin extends Plugin {
     const customEmojiMap = new Map<number, string>();
     const customEmojiIndices = new Set<number>();
     if (this.isPremium) {
-        // mtcute Message.entities is MessageEntity[]; custom emoji lives on .raw / kind=emoji
-        for (const entity of msg.entities || []) {
-            const raw = (entity as { raw?: { _?: string; offset?: number; length?: number; documentId?: { toString(): string } } }).raw;
-            const isCustom =
-              (typeof (entity as { is?: (k: string) => boolean }).is === "function" &&
-                (entity as { is: (k: string) => boolean }).is("emoji")) ||
-              raw?._ === "messageEntityCustomEmoji";
-            if (!isCustom) continue;
-            const offset = typeof entity.offset === "number" ? entity.offset : raw?.offset;
-            const length = typeof entity.length === "number" ? entity.length : raw?.length;
-            const docId =
-              (entity as { params?: { emojiId?: { toString(): string } } }).params?.emojiId?.toString?.() ||
-              raw?.documentId?.toString?.();
+        // mtcute MessageEntity: kind="emoji", params.emojiId=Long
+        for (const entity of (msg.entities || [])) {
+            const e = entity as { kind?: string; params?: { emojiId?: { toString(): string } }; offset?: number; length?: number };
+            if (e.kind !== "emoji") continue;
+            const offset = e.offset;
+            const length = e.length;
+            const docId = e.params?.emojiId?.toString?.();
             if (offset == null || length == null || !docId) continue;
             customEmojiMap.set(offset, docId);
             for (let i = 0; i < length; i++) {
