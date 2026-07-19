@@ -17,8 +17,9 @@ import { htmlEscape } from "@utils/htmlEscape";
 
 const BOT_USERNAME = "ParseHubot";
 const POLL_INTERVAL_MS = 2000;
-const MAX_WAIT_MS = 3 * 60 * 1000;
+const MAX_WAIT_MS = 10 * 60 * 1000; // large media upload can exceed 3min
 const RESULT_IDLE_MS = 5000;
+const PROGRESS_EXTEND_MS = 2 * 60 * 1000; // keep waiting while bot still reports progress
 const FETCH_LIMIT = 50;
 
 const PROGRESS_PREFIXES = [
@@ -93,11 +94,25 @@ function writeState(state: InitState) {
 let initState: InitState = readState();
 let ignoredUpToId = Number(initState.ignoredUpToId || 0) || 0;
 
+
 const isProgressText = (text?: string | null): boolean => {
   if (!text) return false;
   const trimmed = text.trim();
   return PROGRESS_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
 };
+
+/** True when message carries real media (mtcute returns null for empty). */
+function hasMediaPayload(msg: Message): boolean {
+  return msg.media != null;
+}
+
+function isFinalBotMessage(msg: Message): boolean {
+  // Media always wins — bot may edit progress text in place while attaching file
+  if (hasMediaPayload(msg)) return true;
+  const text = msg.text?.trim() || "";
+  if (isProgressText(text)) return false;
+  return Boolean(text);
+}
 
 function extractLinks(text: string): string[] {
   if (!text) return [];
@@ -238,6 +253,7 @@ async function forwardChunk(client: TelegramClient, peer: string | number, ids: 
     toChatId: peer,
     fromChatId: BOT_USERNAME,
     messages: ids,
+    noAuthor: true,
   });
 }
 
@@ -262,12 +278,15 @@ async function relayParseResult(
     };
   }
 
-  const processedIds = new Set<number>();
+  // Progress msgs (解析中/下载中/上传中) often keep the SAME id and are later
+  // edited into the final media. Never permanently skip them via processedIds.
+  const progressIds = new Set<number>();
   const finalMessages = new Map<number, Message>();
 
-  const deadline = Date.now() + MAX_WAIT_MS;
+  let deadline = Date.now() + MAX_WAIT_MS;
   let lastId = baselineId;
   let lastFinalActivity = 0;
+  let lastProgressActivity = Date.now();
   let firstRunIgnore = shouldIgnoreNextBotMessage;
 
   while (Date.now() < deadline) {
@@ -290,19 +309,41 @@ async function relayParseResult(
     for (const botMsg of messages) {
       if (!botMsg) continue;
       if (botMsg.isOutgoing) continue;
-      if (botMsg.id <= lastId) continue;
-      if (processedIds.has(botMsg.id)) continue;
+      if (botMsg.id <= baselineId) continue;
 
-      processedIds.add(botMsg.id);
-      lastId = Math.max(lastId, botMsg.id);
+      const text = botMsg.text?.trim() || "";
 
-      const text = botMsg.text?.trim();
-      if (isProgressText(text)) {
+      // Still a progress status (may be the same msg id as before)
+      if (isProgressText(text) && !hasMediaPayload(botMsg)) {
+        // Stale progress left behind after a newer final result must not block forwarding
+        const maxFinalId = finalMessages.size
+          ? Math.max(...Array.from(finalMessages.keys()))
+          : 0;
+        if (maxFinalId > botMsg.id) {
+          progressIds.delete(botMsg.id);
+          continue;
+        }
+        progressIds.add(botMsg.id);
+        lastId = Math.max(lastId, botMsg.id);
+        lastProgressActivity = Date.now();
+        // Only extend while we do not yet have a final result
+        if (finalMessages.size === 0) {
+          const extended = Date.now() + PROGRESS_EXTEND_MS;
+          if (extended > deadline) deadline = extended;
+          const hardCap = Date.now() + 30 * 60 * 1000;
+          if (deadline > hardCap) deadline = hardCap;
+        }
         continue;
       }
 
-      if (firstRunIgnore) {
-        // Ignore the first non-progress incoming message after initial /start
+      if (!isFinalBotMessage(botMsg)) {
+        // Empty service-ish noise: mark high-water but do not forward
+        lastId = Math.max(lastId, botMsg.id);
+        continue;
+      }
+
+      // First-run welcome /start reply: skip once
+      if (firstRunIgnore && !hasMediaPayload(botMsg)) {
         firstRunIgnore = false;
         shouldIgnoreNextBotMessage = false;
         ignoredUpToId = botMsg.id;
@@ -310,17 +351,41 @@ async function relayParseResult(
         initState.ignoredUpToId = botMsg.id;
         writeState(initState);
         lastId = Math.max(lastId, botMsg.id);
+        progressIds.delete(botMsg.id);
         continue;
       }
 
+      // New final, or progress→final edit of a known progress id
+      const isNew = botMsg.id > lastId || progressIds.has(botMsg.id) || !finalMessages.has(botMsg.id);
+      if (!isNew && finalMessages.has(botMsg.id)) {
+        // already captured; still refresh object in case caption/media changed
+        finalMessages.set(botMsg.id, botMsg);
+        continue;
+      }
+
+      progressIds.delete(botMsg.id);
       finalMessages.set(botMsg.id, botMsg);
+      lastId = Math.max(lastId, botMsg.id);
       lastFinalActivity = Date.now();
     }
 
+    // Prefer break when we have finals AND progress has gone quiet
     if (
       finalMessages.size > 0 &&
+      progressIds.size === 0 &&
       Date.now() - lastFinalActivity >= RESULT_IDLE_MS
     ) {
+      break;
+    }
+
+    // If we only ever saw progress and it went silent for a long time, keep looping until deadline
+    if (
+      finalMessages.size > 0 &&
+      progressIds.size > 0 &&
+      Date.now() - lastProgressActivity >= RESULT_IDLE_MS * 3 &&
+      Date.now() - lastFinalActivity >= RESULT_IDLE_MS
+    ) {
+      // progress stuck without turning into final — forward what we have
       break;
     }
   }
