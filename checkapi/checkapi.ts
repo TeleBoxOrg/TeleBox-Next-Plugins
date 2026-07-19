@@ -196,7 +196,7 @@ async function cb(provider:string,key:string,baseUrl:string): Promise<string>{co
 // ── Model list ──
 async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
   const info=dp(key,baseUrl);
-  const hdrs:Record<string,string>=info.authHeader?{Authorization:info.a...:{};
+  const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
   const url=provider==="gemini"?`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
     :provider==="ollama"?`${info.baseUrl}/api/tags`
     :info.modelsUrl||`${info.baseUrl}/v1/models`;
