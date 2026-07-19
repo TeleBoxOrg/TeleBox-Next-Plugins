@@ -38,7 +38,7 @@ TeleBox-Next-Plugins 是 [TeleBox-Next](https://github.com/TeleBoxOrg/TeleBox-Ne
 - `bs` - 保送  
 - `bulk_delete` - 批量删除消息  
 - `calc` - 计算器  
-- `checkapi` - 🔍 API Key 全功能检测 — 支持 OpenAI/Anthropic/Gemini/DeepSeek/OpenRouter/xAI/自定义 URL，智能识别 provider，一键查余额+模型列表+对话实测，支持保存多 Key 管理  
+- `checkapi` - 🔍 API Key 全功能检测 v3 — 18+ Provider (OpenAI/Anthropic/Gemini/Groq/Mistral/Perplexity/Fireworks/etc)，智能识别+余额+模型列表+对话测试+速度基准+多Key对比，支持 curl/ENV/JSON 输入，URL 域名自动推断  
 - `checkin` - 自动签到插件  
 - `clean` - 账号清理工具 Pro  
 - `clean_member` - 群组成员清理  
