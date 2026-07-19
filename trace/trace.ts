@@ -3,16 +3,19 @@ import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets } from "@utils/pathHelpers";
 import type { MessageContext } from "@mtcute/dispatcher";
-import type { MtcuteInputPeerLike, MtcuteReactions } from "@utils/mtcuteTypes";
+import type { MtcuteInputPeerLike } from "@utils/mtcuteTypes";
 import { thtml as html } from "@mtcute/html-parser";
 import { JSONFilePreset } from "lowdb/node";
 import * as path from "path";
-import bigInt, { BigInteger } from "big-integer";
+import Long from "long";
 import { safeGetReplyMessage } from "@utils/safeGetMessages";
 import { hasRawType } from "@utils/entityTypeGuards";
 import { logger } from "@utils/logger";
 import { getErrorMessage } from "@utils/errorHelpers";
 import { htmlEscape } from "@utils/htmlEscape";
+
+/** Stored reaction: unicode emoji string, or custom emoji document id as decimal string. */
+type StoredReaction = string;
 
 const prefixes = getPrefixes();
 const mainPrefix = prefixes[0];
@@ -57,8 +60,8 @@ const help_text = `🎯 <b>自动回应插件 (Trace)</b>
 
 // DB structure definition.
 interface TraceDB {
-  users: Record<string, (string | BigInteger)[]>;
-  keywords: Record<string, (string | BigInteger)[]>;
+  users: Record<string, StoredReaction[]>;
+  keywords: Record<string, StoredReaction[]>;
   config: {
     keepLog: boolean;
     big: boolean;
@@ -83,7 +86,7 @@ class TracePlugin extends Plugin {
   private db!: Awaited<ReturnType<typeof JSONFilePreset<TraceDB>>>;
   private isPremium: boolean | null = null;
   // [MODIFIED] Added a property to store our own user ID.
-  private meId: BigInteger | null = null;
+  private meId: string | null = null;
   private MessageBuilder: any;
   private pendingDeleteTimers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -95,7 +98,6 @@ class TracePlugin extends Plugin {
   
   private initMessageBuilder() {
     // Initialize MessageBuilder as inner class
-    const self = this;
     this.MessageBuilder = class {
       private text = '';
       private entities: any[] = [];
@@ -108,7 +110,7 @@ class TracePlugin extends Plugin {
           this.text += str + '\n';
       }
       
-      addCustomEmoji(placeholder: string, documentId: BigInteger): void {
+      addCustomEmoji(placeholder: string, documentId: string | Long): void {
           const offset = this.calculateOffset(this.text);
           const length = placeholder.length; // Simple length calculation
           this.text += placeholder;
@@ -117,7 +119,9 @@ class TracePlugin extends Plugin {
               _: "messageEntityCustomEmoji",
               offset,
               length,
-              documentId
+              documentId: Long.isLong(documentId)
+                ? documentId
+                : Long.fromString(String(documentId)),
           });
       }
       
@@ -170,11 +174,48 @@ class TracePlugin extends Plugin {
         if (client) {
             const me = await client.getMe() as { premium?: boolean; id?: number | bigint } | undefined;
             this.isPremium = me?.premium || false;
-            this.meId = me?.id != null ? (typeof me.id === 'bigint' ? bigInt(me.id) : bigInt(Number(me.id))) : null;
+            this.meId = me?.id != null ? String(me.id) : null;
         } else {
             this.isPremium = false;
         }
     }
+  }
+
+  /** true if stored value is a custom-emoji document id (decimal digits), not unicode emoji */
+  private isCustomEmojiId(r: StoredReaction): boolean {
+    return /^\d+$/.test(r);
+  }
+
+  /** Revive DB values that may still be big-integer JSON blobs from older builds */
+  private normalizeStoredReactions(list: unknown): StoredReaction[] {
+    if (!Array.isArray(list)) return [];
+    const out: StoredReaction[] = [];
+    for (const item of list) {
+      if (typeof item === "string") {
+        if (item) out.push(item);
+        continue;
+      }
+      if (typeof item === "number" && Number.isFinite(item)) {
+        out.push(String(Math.trunc(item)));
+        continue;
+      }
+      if (typeof item === "bigint") {
+        out.push(item.toString());
+        continue;
+      }
+      if (item && typeof item === "object") {
+        const anyItem = item as { value?: unknown; toString?: () => string };
+        if (typeof anyItem.value === "string" || typeof anyItem.value === "number") {
+          out.push(String(anyItem.value));
+          continue;
+        }
+        if (typeof anyItem.toString === "function") {
+          const s = anyItem.toString();
+          if (s && s !== "[object Object]") out.push(s);
+        }
+      }
+    }
+    return [...new Set(out)];
   }
 
   private async handleTrace(msg: MessageContext) {
@@ -247,7 +288,7 @@ class TracePlugin extends Plugin {
     try {
       // User trace logic for incoming messages
       if (users[senderId]) {
-        await this.sendReaction(msg.chat.id, msg.id, users[senderId], config.big);
+        await this.sendReaction(msg.chat.id, msg.id, this.normalizeStoredReactions(users[senderId]), config.big);
         return;
       }
 
@@ -255,7 +296,7 @@ class TracePlugin extends Plugin {
       if (msg.text) {
         for (const keyword in keywords) {
           if (msg.text.includes(keyword)) {
-            await this.sendReaction(msg.chat.id, msg.id, keywords[keyword], config.big);
+            await this.sendReaction(msg.chat.id, msg.id, this.normalizeStoredReactions(keywords[keyword]), config.big);
             return;
           }
         }
@@ -283,7 +324,7 @@ class TracePlugin extends Plugin {
     // Extract actual emojis from the original message for display
     // Get reaction display with entities for custom emojis
     const reactionCount = reactions.length;
-    const customCount = reactions.filter(r => typeof r !== 'string').length;
+    const customCount = reactions.filter((r) => this.isCustomEmojiId(r)).length;
     
     if (customCount > 0) {
         // Build message with custom emoji entities
@@ -294,10 +335,9 @@ class TracePlugin extends Plugin {
         
         // Add reactions with proper entities
         for (const reaction of reactions) {
-            if (typeof reaction === 'string') {
+            if (!this.isCustomEmojiId(reaction)) {
                 msgBuilder.add(reaction + ' ');
             } else {
-                // Use a simple emoji as placeholder that will be replaced by custom emoji
                 msgBuilder.addCustomEmoji('😊', reaction);
                 msgBuilder.add(' ');
             }
@@ -323,8 +363,9 @@ class TracePlugin extends Plugin {
   private async untraceUser(msg: MessageContext, repliedMsg: any) {
     const userId = repliedMsg.sender?.id?.toString();
     if (userId && this.db.data.users[userId]) {
-      const standardCount = this.db.data.users[userId].filter((r: string | BigInteger) => typeof r === 'string').length;
-      const customCount = this.db.data.users[userId].filter((r: string | BigInteger) => typeof r !== 'string').length;
+      const userReactions = this.normalizeStoredReactions(this.db.data.users[userId]);
+      const standardCount = userReactions.filter((r) => !this.isCustomEmojiId(r)).length;
+      const customCount = userReactions.filter((r) => this.isCustomEmojiId(r)).length;
       const previousReactions = `${standardCount}个标准 + ${customCount}个会员表情`;
       delete this.db.data.users[userId];
       await this.db.write();
@@ -351,7 +392,7 @@ class TracePlugin extends Plugin {
     // Extract actual emojis from the original message for display
     const reactionDisplay = await this.getReactionDisplay(msg, emojiText, reactions);
     const reactionCount = reactions.length;
-    const customCount = reactions.filter(r => typeof r !== 'string').length;
+    const customCount = reactions.filter((r) => this.isCustomEmojiId(r)).length;
     const successMsg = `✅ <b>${isUpdate ? '更新' : '添加'}关键字追踪</b>\n` +
                       `├ 🔑 关键字: <code>${htmlEscape(keyword)}</code>\n` +
                       `├ 🎯 表情: ${reactionDisplay}\n` +
@@ -362,8 +403,9 @@ class TracePlugin extends Plugin {
 
   private async untraceKeyword(msg: MessageContext, keyword: string) {
     if (this.db.data.keywords[keyword]) {
-      const standardCount = this.db.data.keywords[keyword].filter((r: string | BigInteger) => typeof r === 'string').length;
-      const customCount = this.db.data.keywords[keyword].filter((r: string | BigInteger) => typeof r !== 'string').length;
+      const kwReactions = this.normalizeStoredReactions(this.db.data.keywords[keyword]);
+      const standardCount = kwReactions.filter((r) => !this.isCustomEmojiId(r)).length;
+      const customCount = kwReactions.filter((r) => this.isCustomEmojiId(r)).length;
       const previousReactions = `${standardCount}个标准 + ${customCount}个会员表情`;
       delete this.db.data.keywords[keyword];
       await this.db.write();
@@ -407,8 +449,9 @@ class TracePlugin extends Plugin {
         );
         userIds.forEach((userId, index) => {
             const userEntity = userEntities[index];
-            const standardEmojis = users[userId].filter((r: string | BigInteger) => typeof r === 'string');
-            const customEmojis = users[userId].filter((r: string | BigInteger) => typeof r !== 'string');
+            const userReactions = this.normalizeStoredReactions(users[userId]);
+            const standardEmojis = userReactions.filter((r) => !this.isCustomEmojiId(r));
+            const customEmojis = userReactions.filter((r) => this.isCustomEmojiId(r));
             const reactions = standardEmojis.join('') + 
                              (customEmojis.length > 0 ? ` +${customEmojis.length}会员表情` : '');
             const prefix = index === userCount - 1 ? '└' : '├';
@@ -425,8 +468,9 @@ class TracePlugin extends Plugin {
         response += `┌──────────\n`;
         let index = 0;
         for (const keyword in keywords) {
-            const standardEmojis = keywords[keyword].filter((r: string | BigInteger) => typeof r === 'string');
-            const customEmojis = keywords[keyword].filter((r: string | BigInteger) => typeof r !== 'string');
+            const kwReactions = this.normalizeStoredReactions(keywords[keyword]);
+            const standardEmojis = kwReactions.filter((r) => !this.isCustomEmojiId(r));
+            const customEmojis = kwReactions.filter((r) => this.isCustomEmojiId(r));
             const reactions = standardEmojis.join('') + 
                              (customEmojis.length > 0 ? ` +${customEmojis.length}会员表情` : '');
             const prefix = index === keywordCount - 1 ? '└' : '├';
@@ -522,19 +566,29 @@ class TracePlugin extends Plugin {
     return { id, entity, display: displayParts.join(" ").trim() };
   }
 
-  private async parseReactions(msg: MessageContext, text: string): Promise<(string | BigInteger)[]> {
+  private async parseReactions(msg: MessageContext, text: string): Promise<StoredReaction[]> {
     await this.initializeSelf(); // Ensures isPremium is set
-    const validReactions: (string | BigInteger)[] = [];
-    const customEmojiMap = new Map<number, BigInteger>();
+    const validReactions: StoredReaction[] = [];
+    const customEmojiMap = new Map<number, string>();
     const customEmojiIndices = new Set<number>();
     if (this.isPremium) {
-        const customEmojiEntities = ((msg as unknown as { entities?: ReadonlyArray<{ _?: string; offset: number; length: number; documentId: bigint }> }).entities || []).filter(
-            (e: { _?: string; offset: number; length: number; documentId: bigint }) => e?._ === 'messageEntityCustomEmoji'
-        );
-        for (const entity of customEmojiEntities) {
-            customEmojiMap.set(entity.offset, bigInt(entity.documentId));
-            for (let i = 0; i < entity.length; i++) {
-                customEmojiIndices.add(entity.offset + i);
+        // mtcute Message.entities is MessageEntity[]; custom emoji lives on .raw / kind=emoji
+        for (const entity of msg.entities || []) {
+            const raw = (entity as { raw?: { _?: string; offset?: number; length?: number; documentId?: { toString(): string } } }).raw;
+            const isCustom =
+              (typeof (entity as { is?: (k: string) => boolean }).is === "function" &&
+                (entity as { is: (k: string) => boolean }).is("emoji")) ||
+              raw?._ === "messageEntityCustomEmoji";
+            if (!isCustom) continue;
+            const offset = typeof entity.offset === "number" ? entity.offset : raw?.offset;
+            const length = typeof entity.length === "number" ? entity.length : raw?.length;
+            const docId =
+              (entity as { params?: { emojiId?: { toString(): string } } }).params?.emojiId?.toString?.() ||
+              raw?.documentId?.toString?.();
+            if (offset == null || length == null || !docId) continue;
+            customEmojiMap.set(offset, docId);
+            for (let i = 0; i < length; i++) {
+                customEmojiIndices.add(offset + i);
             }
         }
     }
@@ -554,26 +608,30 @@ class TracePlugin extends Plugin {
     return [...new Set(validReactions)];
   }
 
-  private async sendReaction(peer: any, msgId: number, reactions: (string | BigInteger)[], big: boolean) {
+  /**
+   * Root cause fix: raw client.call({ peer: chatId }) passes a bare number/string,
+   * so TL serialization hits `Unknown object undefined` (peer._ is missing).
+   * Use high-level sendReaction which resolvePeer + normalizeInputReaction.
+   */
+  private async sendReaction(
+    chatId: string | number,
+    msgId: number,
+    reactions: StoredReaction[],
+    big: boolean,
+  ) {
     const client = await getGlobalClient();
-    if (!client || reactions.length === 0) return;
-    
-    const reactionObjects = reactions.map(r => {
-        if (typeof r === 'string') {
-            if (AVAILABLE_REACTIONS.includes(r)) {
-                return { _: "reactionEmoji", emoticon: r };
-            }
-            return { _: "reactionCustomEmoji", documentId: bigInt(r) };
-        } else {
-            return { _: "reactionCustomEmoji", documentId: bigInt(r) };
-        }
-    });
-    
-    await client.call({
-      _: "messages.sendReaction",
-      peer,
-      msgId,
-      reaction: reactionObjects as MtcuteReactions,
+    const normalized = this.normalizeStoredReactions(reactions);
+    if (!client || normalized.length === 0) return;
+
+    // mtcute InputReaction: unicode string OR Long custom-emoji id
+    const emoji = normalized.map((r) =>
+      this.isCustomEmojiId(r) ? Long.fromString(r) : r,
+    );
+
+    await client.sendReaction({
+      chatId,
+      message: msgId,
+      emoji,
       big,
     });
   }
@@ -583,24 +641,20 @@ class TracePlugin extends Plugin {
   /**
    * Helper method to get display text for reactions (fallback without entities)
    */
-  private async getReactionDisplay(msg: MessageContext, emojiText: string, reactions: (string | BigInteger)[]): Promise<string> {
+  private async getReactionDisplay(msg: MessageContext, emojiText: string, reactions: StoredReaction[]): Promise<string> {
     const displayParts: string[] = [];
     let customEmojiCount = 0;
     
-    for (const reaction of reactions) {
-      if (typeof reaction === 'string') {
-        // Standard emoji - can be displayed directly
+    for (const reaction of this.normalizeStoredReactions(reactions)) {
+      if (!this.isCustomEmojiId(reaction)) {
         displayParts.push(reaction);
       } else {
-        // Custom emoji - use a special indicator
         customEmojiCount++;
-        // Show custom emoji with its ID prefix for identification
-        const idPrefix = reaction.toString().slice(0, 4);
+        const idPrefix = reaction.slice(0, 4);
         displayParts.push(`[Premium:${idPrefix}]`);
       }
     }
     
-    // If there are custom emojis, add a note
     if (customEmojiCount > 0) {
       return displayParts.join(' ') + ` (含 ${customEmojiCount} 个会员表情)`;
     }
