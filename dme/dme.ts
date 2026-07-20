@@ -426,13 +426,23 @@ async function searchMyMessagesOptimized(
 /**
  * 带重试机制的实体获取函数
  */
+function coercePeerIdInput(entityId: string | number): string | number {
+  if (typeof entityId === "number") return entityId;
+  const trimmed = String(entityId).trim();
+  if (/^-?\d+$/.test(trimmed)) {
+    const asNum = Number(trimmed);
+    if (Number.isSafeInteger(asNum)) return asNum;
+  }
+  return trimmed;
+}
+
 async function getEntityWithRetry(
   client: TelegramClient,
-  entityId: string,
+  entityId: string | number,
   retryCount: number = 0
 ): Promise<any> {
   try {
-    return await client.resolvePeer(entityId);
+    return await client.resolvePeer(coercePeerIdInput(entityId));
   } catch (error: unknown) {
     if (retryCount < 2) {
       logger.info(`[DME] 获取实体失败，第 ${retryCount + 1} 次重试:`, getErrorMessage(error));
@@ -1333,7 +1343,24 @@ const dme = async (msg: MessageContext) => {
       if (!me) return;
     const myId = Number(me.id);
     const chatId = msg.chat.id.toString();
-    const chatPeer = await getEntityWithHash(client, chatId);
+    // 优先用消息自带 InputPeer（含 accessHash），避免把 "-100..." 字符串误当 username。
+    // 回退走 resolveChatEntity（内部会数字化 ID + 多策略）。
+    let chatPeer: tl.TypeInputPeer;
+    try {
+      const fromMsg = (msg.chat as { inputPeer?: tl.TypeInputPeer } | undefined)?.inputPeer;
+      if (fromMsg && typeof fromMsg === "object" && "_" in fromMsg) {
+        // dummy min peer 仍需 resolve
+        if (String(fromMsg._).startsWith("mtcute.dummy")) {
+          chatPeer = (await getEntityWithHash(client, msg.chat.id)) as tl.TypeInputPeer;
+        } else {
+          chatPeer = fromMsg;
+        }
+      } else {
+        chatPeer = (await resolveChatEntity(client, chatId)) as tl.TypeInputPeer;
+      }
+    } catch {
+      chatPeer = (await resolveChatEntity(client, chatId)) as tl.TypeInputPeer;
+    }
     const topicRootId = getTopicRootIdFromMessage(msg);
 
     if (typeof topicRootId === "number") {
