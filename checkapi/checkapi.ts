@@ -38,7 +38,7 @@ function parseCurl(s: string): { key?: string; url?: string } | null {
   return null;
 }
 function parseEnv(s: string): { key?: string } | null {
-  const m = s.match(/^(?:export\s+)?(\w*API[_\s]*(?:KEY|TOKEN|SECRET)\w*)\s*=\s*['"]?([^\s'"]+)['"]?$/im);
+  const m = s.match(/^(?:export\s+)?(\w*API[\s_]*(?:KEY|TOKEN|SECRET)\w*)\s*=\s*['"]?([^\s'"]+)['"]?$/im);
   if (m) return { key: m[2] };
   return null;
 }
@@ -151,12 +151,35 @@ async function probeApi(baseUrl:string,key:string): Promise<PI>{
 async function ag(url:string,hdrs:Record<string,string>,tms=15000,retries=2): Promise<AR>{for(let i=0;i<=retries;i++){const s=Date.now();try{const r=await axios.get(url,{headers:hdrs,timeout:tms,validateStatus:()=>true,httpAgent:new (require("http").Agent)({keepAlive:true})});const e=Date.now()-s;const a:AR={ok:r.status>=200&&r.status<300,data:r.data,status:r.status,elapsedMs:e};const h:Record<string,string>={};for(const[k,v]of Object.entries(r.headers as Record<string,string>||{})){if(/rate.?limit|retry.?after|x-ratelimit|ratelimit|quota/i.test(k))h[k]=String(v);}if(Object.keys(h).length)a.headers=h;if(!a.ok)a.error=`HTTP ${r.status}: ${JSON.stringify(r.data).slice(0,200)}`;return a;}catch(e:unknown){if(i===retries)return{ok:false,error:ge(e),elapsedMs:Date.now()-s};await new Promise(r=>setTimeout(r,1000*(i+1)));}}return{ok:false,error:"retry exhausted"};}
 async function ap(url:string,hdrs:Record<string,string>,body:unknown,tms=30000,retries=1): Promise<AR>{for(let i=0;i<=retries;i++){const s=Date.now();try{const r=await axios.post(url,body,{headers:hdrs,timeout:tms,validateStatus:()=>true});const e=Date.now()-s;const a:AR={ok:r.status>=200&&r.status<300,data:r.data,status:r.status,elapsedMs:e};const h:Record<string,string>={};for(const[k,v]of Object.entries(r.headers as Record<string,string>||{})){if(/rate.?limit|retry.?after|x-ratelimit|ratelimit|quota/i.test(k))h[k]=String(v);}if(Object.keys(h).length)a.headers=h;if(!a.ok){const d=r.data as Record<string,unknown>|undefined;a.error=d?.error&&typeof d.error==="object"?String((d.error as Record<string,unknown>).message||JSON.stringify(d.error)):`HTTP ${r.status}: ${JSON.stringify(r.data).slice(0,200)}`;}return a;}catch(e:unknown){if(i===retries)return{ok:false,error:ge(e),elapsedMs:Date.now()-s};await new Promise(r=>setTimeout(r,1000*(i+1)));}}return{ok:false,error:"retry exhausted"};}
 
+// ── Fetch models from API to pick a test model ──
+async function pickTestModel(provider:string,key:string,baseUrl:string): Promise<string>{
+  const info=dp(key,baseUrl);
+  const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
+  const url=provider==="gemini"?`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
+    :provider==="ollama"?`${info.baseUrl}/api/tags`
+    :info.modelsUrl||`${info.baseUrl}/v1/models`;
+  try{
+    const r=await ag(url,provider==="anthropic"?info.headers:hdrs,8000);
+    if(r.ok){
+      let models:Array<Record<string,unknown>>=[];
+      if(provider==="gemini"){models=(r.data as Record<string,unknown>|undefined)?.models as Array<Record<string,unknown>>||[];}
+      else if(provider==="ollama"){models=((r.data as Record<string,unknown>|undefined)?.models as Array<Record<string,unknown>>||[]).map((m:Record<string,unknown>)=>({id:String(m.name||"").replace(/:latest$/,"")}));}
+      else{const d=r.data as Record<string,unknown>|undefined;models=(Array.isArray(r.data)?r.data:d?.data as Array<Record<string,unknown>>)||[];}
+      if(models.length){
+        const names=models.map((m:any)=>String(m.id||m.name||"").replace("models/","").replace(":latest","")).filter(Boolean);
+        if(names.length)return names[0];
+      }
+    }
+  }catch{/* fallback */}
+  const mm:Record<string,string>={openai:"gpt-4.1-mini",deepseek:"deepseek-chat",openrouter:"openai/gpt-4.1-mini",xai:"grok-3-mini",groq:"llama-3.3-70b-versatile",together:"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",mistral:"mistral-small-2506",perplexity:"sonar-reasoning",cohere:"command-r7b-12-2024",fireworks:"accounts/fireworks/models/llama-v3p3-70b-instruct",replicate:"meta/llama-3.3-70b-instruct",ollama:"llama3.2",siliconflow:"Qwen/Qwen3-8B",deepinfra:"meta-llama/Llama-4-Maverick-17B-128E-Instruct",huggingface:"Qwen/Qwen2.5-7B-Instruct",custom:"gpt-4.1-mini",nvidia:"nvidia/llama-3.1-nemotron-ultra-253b-v1",novita:"deepseek/deepseek-v3-0324",cerebras:"llama3.1-8b",azure:"gpt-4o-mini",vercel:"gpt-4o-mini"};
+  return mm[provider]||"gpt-4o-mini";
+}
+
 // ── Chat test ──
 async function ct(provider:string,key:string,baseUrl:string,askText?:string): Promise<CTR>{const q=askText||"say ok";const info=dp(key,baseUrl);
   if(provider==="gemini"){const gemBase=info.baseUrl||"https://generativelanguage.googleapis.com";const url=gemBase.includes("v1beta")?`${gemBase}/models/gemini-2.5-flash:generateContent`:`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;const params=gemBase.includes("generativelanguage")?`?key=${key}`:"";const r=await ap(`${url}${params}`,{"content-type":"application/json"},{contents:[{parts:[{text:q}]}],generationConfig:{maxOutputTokens:50,temperature:0}},20000);if(r.ok){const d=r.data as Record<string,unknown>|undefined;const cs=d?.candidates as Array<Record<string,unknown>>|undefined;const ct=cs?.[0]?.content as Record<string,unknown>|undefined;const ps=ct?.parts as Array<Record<string,string>>|undefined;const tx=ps?.map(p=>p.text||"").join("")||"";const u=d?.usageMetadata as Record<string,number>|undefined;return{ok:true,text:tx,model:"gemini-2.5-flash",usage:u?{prompt:u.promptTokenCount||0,completion:u.candidatesTokenCount||0,total:u.totalTokenCount||0}:undefined,elapsedMs:r.elapsedMs,headers:r.headers};}return{ok:false,error:r.error,elapsedMs:r.elapsedMs};}
   if(provider==="anthropic"){const r=await ap(info.chatUrl,info.headers,{model:"claude-3.5-haiku-20241022",max_tokens:50,messages:[{role:"user",content:q}]},20000);if(r.ok){const d=r.data as Record<string,unknown>|undefined;const ct=(d?.content as Array<Record<string,unknown>>|undefined)?.[0];const tx=String(ct?.text||"");const u=d?.usage as Record<string,number>|undefined;return{ok:true,text:tx,model:String(d?.model||"claude"),usage:u?{prompt:u.input_tokens||0,completion:u.output_tokens||0,total:(u.input_tokens||0)+(u.output_tokens||0)}:undefined,elapsedMs:r.elapsedMs,headers:r.headers};}return{ok:false,error:r.error,elapsedMs:r.elapsedMs};}
-  const mm:Record<string,string>={openai:"gpt-4.1-mini",deepseek:"deepseek-chat",openrouter:"openai/gpt-4.1-mini",xai:"grok-3-mini",groq:"llama-3.3-70b-versatile",together:"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",mistral:"mistral-small-2506",perplexity:"sonar-reasoning",cohere:"command-r7b-12-2024",fireworks:"accounts/fireworks/models/llama-v3p3-70b-instruct",replicate:"meta/llama-3.3-70b-instruct",ollama:"llama3.2",siliconflow:"Qwen/Qwen3-8B",deepinfra:"meta-llama/Llama-4-Maverick-17B-128E-Instruct",huggingface:"Qwen/Qwen2.5-7B-Instruct",custom:"gpt-4.1-mini",nvidia:"nvidia/llama-3.1-nemotron-ultra-253b-v1",novita:"deepseek/deepseek-v3-0324",cerebras:"llama3.1-8b",azure:"gpt-4o-mini",vercel:"gpt-4o-mini"};
-  const model=mm[provider]||"gpt-4o-mini";
+  const model=await pickTestModel(provider,key,baseUrl);
   const hdrs:Record<string,string>={"content-type":"application/json"};
   if (info.authHeader) hdrs["Authorization"]=info.authHeader;
   if (provider==="cohere") delete hdrs["Authorization"];
@@ -207,7 +230,7 @@ async function cb(provider:string,key:string,baseUrl:string): Promise<string>{co
   return `❌ 均无法连接，请检查 URL 和 Key`;
 }
 
-// ── Model list ──
+// ── Model list (all models in one blockquote) ──
 async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
   const info=dp(key,baseUrl);
   const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
@@ -223,23 +246,16 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
   else{const d=r.data as Record<string,unknown>|undefined;models=(Array.isArray(r.data)?r.data:d?.data as Array<Record<string,unknown>>)||[];}
   if(!models.length)return"❌ 未找到可用模型";
 
-  const cats:Record<string,string[]>={};let total=0;
+  const names:string[]=[];
   for(const m of models){
     const name=String(m.id||m.name||"").replace("models/","").replace(":latest","");
-    if(!name)continue;
-    const owner=String(m.owned_by||"");
-    let cat="其他";
-    if(provider==="gemini"){cat=name.includes("gemini")?"Gemini":name.includes("embedding")?"Embedding":name.includes("imagen")?"Imagen":"其他";}
-    else{if(/gpt|o1|o3|o4|o5/i.test(name))cat="GPT / o-series";else if(/claude/i.test(name))cat="Claude";else if(/gemini/i.test(name))cat="Gemini";else if(/deepseek/i.test(name))cat="DeepSeek";else if(/nemotron/i.test(name))cat="Nemotron";else if(/nvidia/i.test(name))cat="NVIDIA";else if(/grok/i.test(name))cat="Grok";else if(/llama|mistral|mixtral|qwen/i.test(name))cat="开源模型";else if(/embed|text-embed/i.test(name))cat="Embedding";else if(/dall-e|imagen|flux|stable|sdxl/i.test(name))cat="图像生成";else if(/tts|whisper|audio|speech/i.test(name))cat="语音";else if(/moderation/i.test(name))cat="审核";else if(/rerank|reranker/i.test(name))cat="Rerank";else if(owner)cat=owner.split("/")[0];}
-    (cats[cat]||=[]).push(name);total++;
+    if(name)names.push(name);
   }
-  const lines:string[]=[`🤖 共 ${total} 个`];
-  const cn=Object.keys(cats).sort((a,b)=>(cats[b].length-cats[a].length)||a.localeCompare(b));
-  for(const cat of cn){
-    const ms=cats[cat];if(cn.length>1&&ms.length<3)continue;
-    lines.push(`\n<b>${cat}</b> (${ms.length}):`);
-    lines.push(`<blockquote expandable>${ms.slice(0,15).map(m=>`<code>${m}</code>`).join(" | ")}${ms.length>15?` | ... +${ms.length-15}`:""}</blockquote>`);
-  }
+  if(!names.length)return"❌ 未找到可用模型";
+
+  // All models in one expandable blockquote
+  const lines:string[]=[`🤖 共 ${names.length} 个`];
+  lines.push(`<blockquote expandable>${names.slice(0,30).map(n=>`<code>${n}</code>`).join(" | ")}${names.length>30?` | ... +${names.length-30}`:""}</blockquote>`);
   if(r.headers&&Object.keys(r.headers).length){lines.push(`\n⚡ 速率限制：`);for(const[k,v]of Object.entries(r.headers)){lines.push(`  <code>${k}</code>: ${v}`);}}
   return lines.join("\n");
 }
@@ -279,6 +295,24 @@ async function speedTest(provider:string,key:string,baseUrl:string): Promise<str
   return rs;
 }
 
+// ── Quick API key validation (for save) ──
+async function validateKey(provider:string,key:string,baseUrl:string): Promise<string>{
+  const info=dp(key,baseUrl);
+  const hdrs:Record<string,string>=info.authHeader?{Authorization:info.authHeader}:{};
+  const testUrls = provider==="gemini"?[`${info.baseUrl}/v1beta/models?key=${key}`]
+    :provider==="anthropic"?[info.chatUrl]
+    :[`${info.baseUrl}/v1/models`, `${info.baseUrl}/models`];
+  for (const u of testUrls) {
+    const r=await ag(u,provider==="anthropic"?info.headers:hdrs,10000);
+    if(r.ok)return"✅";
+    if(r.status===401)return"❌ Key 无效 — 401 Unauthorized";
+    if(r.status===403)return"❌ Key 无效 — 403 Forbidden";
+    if(r.status===404||r.status===405)continue;
+    return `⚠️ HTTP ${r.status}`;
+  }
+  return `❌ 无法连接 — 请检查 URL 和 Key`;
+}
+
 // ── Plugin ──
 class CheckApiPlugin extends Plugin{name="checkapi";description=
 `🔍 API 检测 v6\n\n传入 URL + Key 即可自动识别、查余额、测速。\n所有子命令均支持直接传入网址和密钥，无需预先保存。\n\n用法：\n<blockquote expandable><code>${mp}checkapi &lt;URL&gt; &lt;key&gt;</code> — 一键检测全部\n<code>${mp}checkapi models &lt;URL&gt; &lt;key&gt;</code> — 查看模型列表\n<code>${mp}checkapi speed &lt;URL&gt; &lt;key&gt;</code> — 测试响应速度\n<code>${mp}checkapi ask &lt;URL&gt; &lt;key&gt; &lt;问题&gt;</code> — 发送对话\n<code>${mp}checkapi compare &lt;k1&gt; &lt;k2&gt;</code> — 对比两个 API\n<code>${mp}checkapi save/list/del/check</code> — 管理已保存的密钥</blockquote>\n支持 curl 命令 / 环境变量 / JSON 配置直接粘贴`;
@@ -305,7 +339,7 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
   // ── list / del / save / check ──
   if(sub==="list"){const keys=await lk();if(!keys.length){await msg.edit({text:html`📭 还没有保存密钥\n<code>${mp}checkapi save &lt;name&gt; &lt;key&gt;</code>`});return;}const lines=[`🔑 已保存 ${keys.length} 个:`];for(const k of keys)lines.push(`  • <b>${k.name}</b>: ${mk(k.key)} (${k.provider||"auto"})${k.baseUrl?` [${(()=>{try{return new URL(k.baseUrl).hostname}catch{return k.baseUrl}})()}]`:""}`);await msg.edit({text:html`${lines.join("\n")}`});return;}
   if(sub==="del"||sub==="delete"){const name=parts[1];if(!name){await msg.edit({text:html`❌ 用法：<code>${mp}checkapi del &lt;名称&gt;</code>`});return;}const keys=await lk();const idx=keys.findIndex(k=>k.name===name);if(idx===-1){await msg.edit({text:html`❌ <b>${name}</b> 不存在`});return;}keys.splice(idx,1);await sk(keys);await msg.edit({text:html`✅ 已删 <b>${name}</b>`});return;}
-  if(sub==="save"){let name:string|undefined,key:string|undefined,baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!name){name=a;continue;}if(!key){key=a;continue;}if(!baseUrl){baseUrl=nu(a);continue;}}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!name||!key){await msg.edit({text:html`❌ 用法：<code>${mp}checkapi save &lt;名称&gt; &lt;key&gt; [url]</code>`});return;}const keys=await lk();const info=dp(key,baseUrl);const entry:SK={name,key,baseUrl,provider:info.provider,addedAt:Date.now()};const idx=keys.findIndex(k=>k.name===name);if(idx>=0)keys[idx]=entry;else keys.push(entry);await sk(keys);await msg.edit({text:html`✅ ${idx>=0?"已更新":"已保存"} <b>${name}</b> → <code>${mp}checkapi ${name}</code>`});return;}
+  if(sub==="save"){let name:string|undefined,key:string|undefined,baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!name){name=a;continue;}if(!key){key=a;continue;}if(!baseUrl){baseUrl=nu(a);continue;}}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!name||!key){await msg.edit({text:html`❌ 用法：<code>${mp}checkapi save &lt;名称&gt; &lt;key&gt; [url]</code>`});return;}const keys=await lk();const info=dp(key,baseUrl);const entry:SK={name,key,baseUrl,provider:info.provider,addedAt:Date.now()};const idx=keys.findIndex(k=>k.name===name);if(idx>=0)keys[idx]=entry;else keys.push(entry);await sk(keys);await msg.edit({text:html`🔍 正在验证 <b>${name}</b>...`});const valid=await validateKey(info.provider,key,info.baseUrl);await msg.edit({text:html`✅ ${idx>=0?"已更新":"已保存"} <b>${name}</b> → <code>${mp}checkapi ${name}</code>\n${valid}`});return;}
   if(sub==="check"){const target=parts[1]||"all";if(target==="all"){const keys=await lk();if(!keys.length){await msg.edit({text:html`📭 还没有保存密钥`});return;}await msg.edit({text:html`正在检测 ${keys.length} 个密钥...`});const results:string[]=[];const promises=keys.map(async(k)=>{const info=dp(k.key,k.baseUrl);try{return[`\n━━━ <b>${k.name}</b> ━━━`,...(await fcv2(info.provider,k.key,k.baseUrl||info.baseUrl))]as string[]}catch(e:unknown){return[`\n━━━ <b>${k.name}</b> ━━━`,`⚠️ ${ge(e)}`]as string[]}});const batches=await Promise.all(promises);for(const row of batches)results.push(...row);await msg.edit({text:html`${results.join("\n")}`});return;}const keys=await lk();const found=keys.find(k=>k.name===target);if(!found){await msg.edit({text:html`❌ <b>${target}</b> 不存在`});return;}await msg.edit({text:html`🔍 正在检测 <b>${target}</b>...`});const info=dp(found.key,found.baseUrl);const results=await fcv2(info.provider,found.key,found.baseUrl||info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
 
   // ── models / ask / speed ──
@@ -314,7 +348,7 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
   if(sub==="speed"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi speed &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`⚡ ${info.displayName} 速度测试中...`});const results=await speedTest(info.provider,key,info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
 
   // ── compare: two keys side by side ──
-  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:html`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`});return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:html`🔍 正在对比 <b>${r1.label}</b> vs <b>${r2.label}</b>...`});const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,p2.baseUrl)]);const m=[`⚖️ <b>${p1.displayName}</b> (${r1.label})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:html`${m.join("\n")}`});return;}
+  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:html`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`});return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:html`🔍 正在对比 <b>${r1.label}</b> vs <b>${r2.label}</b>...`});const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,r2.baseUrl)]);const m=[`⚖️ <b>${p1.displayName}</b> (${r1.label})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:html`${m.join("\n")}`});return;}
 
   // ── Inline key: auto-detect + full check ──
   let key:string,baseUrl:string|undefined;let label:string;const keys=await lk();
