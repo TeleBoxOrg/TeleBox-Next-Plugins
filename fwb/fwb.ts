@@ -33,9 +33,9 @@ const AI_CONFIG_CACHE_MS = 5_000;
 const MIN_OUTPUT_TOKENS = 1024;
 const PREMIUM_CACHE_MS = 6 * 60 * 60 * 1000;
 /** 检测到命令后，同会话内短时不润色后续出站纯文本（吃掉 .h 等插件回包） */
-const COMMAND_FOLLOWUP_SUPPRESS_MS = 8_000;
+const COMMAND_FOLLOWUP_SUPPRESS_MS = 2_500;
 /** 只润色“刚发出”的消息，避免历史回放/他人记录误入 */
-const MAX_MESSAGE_AGE_MS = 60_000;
+const MAX_MESSAGE_AGE_MS = 120_000;
 
 const DATA_DIR = createDirectoryInAssets("fwb");
 const CONFIG_PATH = path.join(DATA_DIR, "config.json");
@@ -52,28 +52,53 @@ const AI_CONFIG_PATHS = [
   path.join(process.cwd(), "assets", "uai", "config.json"),
 ];
 
-/** 术语规范/间距/强调交给模型，不在本地硬编码词表。 */
-const POLISH_PROMPT_ENTITIES = `你是 Telegram 消息润色器。只输出润色后的正文，不要解释。
+/**
+ * 术语/间距/强调交给模型判断，不在本地硬编码词表。
+ * 用原则 + 少量示例引导短句也要改，禁止无故原样返回。
+ */
+const POLISH_PROMPT_ENTITIES = `任务：润色一条即将发出的 Telegram 聊天消息。
+只输出润色后的正文本身，不要引号、不要解释、不要前后缀、不要代码围栏。
 
-必须做（短句也要做）：
-1. 中文与英文/数字之间补空格（如：反正是vps → 反正是 VPS）
-2. 技术缩写与专有名词按通行写法规范大小写（由你判断，勿臆造新词）
-3. 修错别字、语病、多余空格、中英文标点混用
-4. 可对 1～3 个关键词使用 **粗体** 或 \`行内代码\`，不要整句加粗
-5. 保留原意、语气、人称、语言；保留 URL、@用户名、命令前缀、数字含义
+核心原则：
+- 保留原意、语气、人称、语言；口语可保留，不要写成公文。
+- 保留 URL、@用户名、命令前缀、路径、数字含义；不要编造事实或补充未说内容。
+- 只要存在可改进点，就必须改，禁止原样照抄。短句也要改。
 
-禁止：解释、前后缀、整段代码围栏、回答问题、编造事实、大幅改写口语风格。`;
+优先改这些（按出现情况执行，无需全中）：
+1. 中文与英文/数字紧贴 → 补空格
+2. 技术缩写与专有名词 → 按通行写法规范大小写（由你判断，勿臆造新词）
+3. 错别字、语病、多余空格、中英文标点混用 → 修正
+4. 1～2 个关键词可加 **粗体** 或 \`行内代码\`（术语、命令、路径、产品名）；不要整句加粗，不要堆砌格式
 
-const POLISH_PROMPT_RICH = `你是 Telegram 消息润色器（RichMessage Markdown）。只输出润色后的完整正文，不要解释。
+输出对照（学习风格，勿死记词表）：
+输入：反正是vps
+输出：反正是 **VPS**
+输入：这个api返回400了
+输出：这个 API 返回 400 了
+输入：部署完再看日志吧
+输出：部署完再看日志吧
+（已通顺、无可改点时才允许与输入相同）`;
 
-必须做（短句也要做）：
-1. 中文与英文/数字之间补空格
-2. 技术缩写与专有名词按通行写法规范大小写（由你判断）
-3. 修错别字、语病、标点
-4. 适量使用 **粗体** *斜体* __下划线__ ~~删除线~~ ||剧透|| \`代码\`、列表、引用；关键词可强调，勿整段堆砌
-5. 保留原意、语气、人称、语言；保留 URL/@/命令/数字
+const POLISH_PROMPT_RICH = `任务：润色一条即将发出的 Telegram 聊天消息（RichMessage Markdown）。
+只输出润色后的完整正文本身，不要引号、不要解释、不要前后缀、不要用代码围栏包裹全文。
 
-禁止：解释、前后缀、整段代码围栏包裹答案、回答问题、编造事实。`;
+核心原则：
+- 保留原意、语气、人称、语言；口语可保留。
+- 保留 URL、@用户名、命令前缀、数字含义；不要编造事实。
+- 只要存在可改进点，就必须改，禁止原样照抄。短句也要改。
+
+优先改这些：
+1. 中文与英文/数字紧贴 → 补空格
+2. 技术缩写与专有名词 → 按通行写法规范大小写（由你判断）
+3. 错别字、语病、标点 → 修正
+4. 适量使用 **粗体** *斜体* __下划线__ ~~删除线~~ ||剧透|| \`代码\`；关键词可强调，勿整段堆砌
+
+输出对照：
+输入：反正是vps
+输出：反正是 **VPS**
+输入：这个api返回400了
+输出：这个 API 返回 400 了
+（已通顺、无可改点时才允许与输入相同）`;
 
 type ApiType = "openai" | "gemini";
 type AuthMethod = "bearer_token" | "api_key_header" | "query_param";
@@ -760,35 +785,63 @@ function textLooksLikeCommand(text: string): boolean {
   return false;
 }
 
-/** 已有 entities / richMessage → 多半是其他插件格式化后的输出 */
-function hasExistingFormatEntities(msg: MessageContext): boolean {
-  const entities = (msg as any).entities;
-  if (Array.isArray(entities) && entities.length > 0) return true;
+/** 已有「人工/插件排版」实体 → 多半是其他插件格式化后的输出。
+ * 注意：Telegram 会给 URL/@/# 自动加 entity，不能据此跳过普通消息。
+ */
+function hasIntentionalFormatEntities(msg: MessageContext): boolean {
   if ((msg as any).richMessage != null) return true;
-  // mtcute 可能把格式化结果挂在 textWithEntities
+  const collect: any[] = [];
+  const entities = (msg as any).entities;
+  if (Array.isArray(entities)) collect.push(...entities);
   const twe = (msg as any).textWithEntities;
-  if (twe && Array.isArray(twe.entities) && twe.entities.length > 0) return true;
+  if (twe && Array.isArray(twe.entities)) collect.push(...twe.entities);
+  if (collect.length === 0) return false;
+
+  const FORMAT_HINT =
+    /Bold|Italic|Underline|Strike|Spoiler|Code|Pre|Blockquote|CustomEmoji|TextUrl/i;
+  const AUTO_HINT =
+    /Url(?!Text)|Mention|Hashtag|Cashtag|BotCommand|Email|Phone|BankCard/i;
+
+  for (const ent of collect) {
+    const name = String(
+      ent?.className || ent?._ || ent?.type || ent?.constructor?.name || "",
+    );
+    if (!name) continue;
+    if (FORMAT_HINT.test(name) && !AUTO_HINT.test(name)) return true;
+    if (/TextUrl/i.test(name)) return true;
+  }
+  return false;
+}
+
+/** fwb 自身命令不启动抑制窗：它编辑原消息，不会另发纯文本回包 */
+function isFwbSelfCommand(text: string): boolean {
+  const trimmed = text.trimStart();
+  for (const p of getPrefixes()) {
+    if (!p || !trimmed.startsWith(p)) continue;
+    const body = trimmed.slice(p.length).trimStart();
+    if (/^fwb(?:\s|$)/i.test(body)) return true;
+  }
   return false;
 }
 
 /**
- * 过滤其他命令/插件产生的纯文本，避免「.h 出两条纯文本」双重响应。
- * - 命令本体：记入会话抑制窗口并跳过
- * - 已有富文本实体：视为插件输出
- * - 命令后短时窗口内的出站纯文本：视为命令回包
+ * 过滤其他命令/插件产生的纯文本。
+ * @returns 跳过原因；null 表示不跳过
  */
-function shouldSkipPluginOrCommandOutput(
+function skipReasonForPluginOrCommandOutput(
   msg: MessageContext,
   text: string,
   chatKey: string,
-): boolean {
+): string | null {
   if (getCommandFromMessage(msg) || textLooksLikeCommand(text)) {
-    noteCommandActivity(chatKey);
-    return true;
+    if (!isFwbSelfCommand(text)) {
+      noteCommandActivity(chatKey);
+    }
+    return "command";
   }
-  if (hasExistingFormatEntities(msg)) return true;
-  if (isCommandFollowupSuppressed(chatKey)) return true;
-  return false;
+  if (hasIntentionalFormatEntities(msg)) return "formatted";
+  if (isCommandFollowupSuppressed(chatKey)) return "command-followup";
+  return null;
 }
 
 function messageAgeMs(msg: MessageContext): number | null {
@@ -1338,8 +1391,16 @@ class FwbPlugin extends Plugin {
 
     const chatKey = messageChatKey(msg);
     const text = msg.text || "";
-    // 跳过命令本体、其他插件已格式化输出、命令触发后的短时回包
-    if (shouldSkipPluginOrCommandOutput(msg, text, chatKey)) return;
+    // 跳过命令本体、其他插件有意格式化输出、命令触发后的短时回包
+    const skipReason = skipReasonForPluginOrCommandOutput(msg, text, chatKey);
+    if (skipReason) {
+      if (skipReason !== "command") {
+        console.log(
+          `[fwb] 跳过消息 ${String(msg.id)}（${skipReason}）原文 ${Math.min(text.length, 40)} 字`,
+        );
+      }
+      return;
+    }
 
     const key = `${chatKey}:${String(msg.id)}`;
     if (this.processing.has(key)) return;
@@ -1357,6 +1418,9 @@ class FwbPlugin extends Plugin {
     const totalStarted = Date.now();
     let release: (() => void) | null = null;
     try {
+      console.log(
+        `[fwb] 开始润色消息 ${String(msg.id)}（${text.length} 字，模式 ${this.config.accountMode}）`,
+      );
       const queueStarted = Date.now();
       release = await this.gate.acquire(this.signal);
       const queueMs = Date.now() - queueStarted;
