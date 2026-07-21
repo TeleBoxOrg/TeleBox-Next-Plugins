@@ -1647,6 +1647,8 @@ America/New_York
       if (client) await client.updateProfile({ firstName: settings.original_first_name || "", lastName: settings.original_last_name || undefined });
       settings.is_enabled = false;
       await DataManager.saveUserSettings(settings);
+      const stillEnabled = await DataManager.getAllEnabledUsers();
+      if (stillEnabled.length === 0) nameManager.stopAutoUpdate();
       await msg.edit({ text: html("✅ <b>已恢复原始昵称并禁用自动更新</b>") });
     } catch (_e: unknown) {
       await msg.edit({ text: html("❌ 重置失败") });
