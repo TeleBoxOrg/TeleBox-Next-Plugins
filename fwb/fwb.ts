@@ -29,9 +29,13 @@ const MAX_RESULT_LENGTH = 4096;
 const DEFAULT_TIMEOUT = 60_000;
 const MAX_CONCURRENT_REQUESTS = 4;
 const AI_CONFIG_CACHE_MS = 5_000;
+/** 最短输出 token：过低时推理模型会把额度耗在 thinking 上导致 content 为空 */
+const MIN_OUTPUT_TOKENS = 1024;
 const PREMIUM_CACHE_MS = 6 * 60 * 60 * 1000;
 /** 检测到命令后，同会话内短时不润色后续出站纯文本（吃掉 .h 等插件回包） */
-const COMMAND_FOLLOWUP_SUPPRESS_MS = 5_000;
+const COMMAND_FOLLOWUP_SUPPRESS_MS = 8_000;
+/** 只润色“刚发出”的消息，避免历史回放/他人记录误入 */
+const MAX_MESSAGE_AGE_MS = 60_000;
 
 const DATA_DIR = createDirectoryInAssets("fwb");
 const CONFIG_PATH = path.join(DATA_DIR, "config.json");
@@ -48,11 +52,28 @@ const AI_CONFIG_PATHS = [
   path.join(process.cwd(), "assets", "uai", "config.json"),
 ];
 
-const POLISH_PROMPT_ENTITIES = `润色 Telegram 消息，只输出润色后的正文。
-要求：保原意/语气/人称/语言；修错别字与病句；短句少改；可少量使用 **粗体** *斜体* __下划线__ ~~删除线~~ ||剧透|| \`代码\` 链接；保留 URL/@/命令/数字；禁止解释、前后缀、整段代码围栏、回答问题、编造事实。`;
+/** 术语规范/间距/强调交给模型，不在本地硬编码词表。 */
+const POLISH_PROMPT_ENTITIES = `你是 Telegram 消息润色器。只输出润色后的正文，不要解释。
 
-const POLISH_PROMPT_RICH = `润色 Telegram 消息，只输出润色后的完整正文（Telegram RichMessage Markdown）。
-要求：保原意/语气/人称/语言；修错别字与病句；短句少改；可适量使用 **粗体** *斜体* __下划线__ ~~删除线~~ ||剧透|| 行内代码、代码块、引用、列表、标题和链接；保留 URL/@/命令/数字；禁止解释、前后缀、整段代码围栏包裹答案、回答问题、编造事实。`;
+必须做（短句也要做）：
+1. 中文与英文/数字之间补空格（如：反正是vps → 反正是 VPS）
+2. 技术缩写与专有名词按通行写法规范大小写（由你判断，勿臆造新词）
+3. 修错别字、语病、多余空格、中英文标点混用
+4. 可对 1～3 个关键词使用 **粗体** 或 \`行内代码\`，不要整句加粗
+5. 保留原意、语气、人称、语言；保留 URL、@用户名、命令前缀、数字含义
+
+禁止：解释、前后缀、整段代码围栏、回答问题、编造事实、大幅改写口语风格。`;
+
+const POLISH_PROMPT_RICH = `你是 Telegram 消息润色器（RichMessage Markdown）。只输出润色后的完整正文，不要解释。
+
+必须做（短句也要做）：
+1. 中文与英文/数字之间补空格
+2. 技术缩写与专有名词按通行写法规范大小写（由你判断）
+3. 修错别字、语病、标点
+4. 适量使用 **粗体** *斜体* __下划线__ ~~删除线~~ ||剧透|| \`代码\`、列表、引用；关键词可强调，勿整段堆砌
+5. 保留原意、语气、人称、语言；保留 URL/@/命令/数字
+
+禁止：解释、前后缀、整段代码围栏包裹答案、回答问题、编造事实。`;
 
 type ApiType = "openai" | "gemini";
 type AuthMethod = "bearer_token" | "api_key_header" | "query_param";
@@ -72,6 +93,9 @@ type Provider = {
 type AIConfig = {
   timeout?: number;
   active_provider?: Provider;
+  /** uai 格式兼容 */
+  providers?: Record<string, Provider | unknown>;
+  default_provider?: string;
 };
 
 type FwbConfig = {
@@ -107,16 +131,51 @@ function prefix(): string {
   return getPrefixes()[0] || ".";
 }
 
+function summarizeApiErrorBody(data: unknown): string {
+  if (data == null) return "";
+  if (typeof data === "string") return data.slice(0, 240).trim();
+  try {
+    const obj = data as any;
+    const msg =
+      obj?.error?.message ||
+      obj?.error?.code ||
+      obj?.message ||
+      obj?.msg ||
+      obj?.detail ||
+      null;
+    if (typeof msg === "string" && msg.trim()) return msg.trim().slice(0, 240);
+    return JSON.stringify(data).slice(0, 240);
+  } catch {
+    return "";
+  }
+}
+
 function errorText(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const status = error.response?.status;
-    if (status) return `AI API HTTP ${status}`;
-    if (error.code === "ECONNABORTED" || /timeout/i.test(error.message)) {
+    const ax = error as {
+      response?: { status?: number; data?: unknown };
+      code?: string;
+      message: string;
+    };
+    const status = ax.response?.status;
+    if (status) {
+      const detail = summarizeApiErrorBody(ax.response?.data);
+      return detail ? `AI API HTTP ${status}: ${detail}` : `AI API HTTP ${status}`;
+    }
+    if (ax.code === "ECONNABORTED" || /timeout/i.test(ax.message)) {
       return "AI API 请求超时";
     }
-    return `AI API 请求失败：${error.code || error.message}`;
+    return `AI API 请求失败：${ax.code || ax.message}`;
   }
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Telegram 认为编辑内容与原文完全一致（含实体） */
+function isMessageNotModified(error: unknown): boolean {
+  const text = errorText(error);
+  return /MESSAGE_NOT_MODIFIED|identical to the previous message|message wasn't modified/i.test(
+    text,
+  );
 }
 
 function readJsonFile<T>(filePath: string): T | null {
@@ -214,6 +273,27 @@ function aiConfigSignature(): string {
   }).join("|");
 }
 
+/** 从 uai/ai 配置中解析可用 provider（兼容 active_provider 与 providers+default） */
+function resolveProviderFromConfig(config: AIConfig): Provider | null {
+  const direct = normalizeProvider(config.active_provider);
+  if (direct) return direct;
+
+  const providers = config.providers;
+  if (!providers || typeof providers !== "object") return null;
+
+  const preferred = String(config.default_provider || "").trim();
+  if (preferred && preferred in providers) {
+    const p = normalizeProvider(providers[preferred]);
+    if (p) return p;
+  }
+
+  for (const value of Object.values(providers)) {
+    const p = normalizeProvider(value);
+    if (p) return p;
+  }
+  return null;
+}
+
 function loadAIConfig(): LoadedAIConfig {
   const now = Date.now();
   const signature = aiConfigSignature();
@@ -224,9 +304,10 @@ function loadAIConfig(): LoadedAIConfig {
   for (const configPath of AI_CONFIG_PATHS) {
     const config = readJsonFile<AIConfig>(configPath);
     if (!config) continue;
-    const provider = normalizeProvider(config.active_provider);
+    const provider = resolveProviderFromConfig(config);
     if (!provider) {
-      throw new Error("ai.ts 配置中没有有效的 active_provider");
+      // 文件存在但无有效 provider，继续尝试下一个路径
+      continue;
     }
     const timeout = Number(config.timeout);
     const value: LoadedAIConfig = {
@@ -240,12 +321,17 @@ function loadAIConfig(): LoadedAIConfig {
     };
     return value;
   }
-  throw new Error("未找到 ai.ts 配置文件 plugins/.data/uai/config.json");
+  throw new Error("未找到可用 AI 配置（需 active_provider 或 uai providers）");
 }
 
+/**
+ * 按原文长度估算输出 token。
+ * 下限必须足够高：部分模型（尤其 reasoning）会先占用 thinking token，
+ * 若 max_tokens 过低会返回空 content。
+ */
 function maxOutputTokens(content: string): number {
-  const estimated = Math.ceil(content.length * 1.6) + 64;
-  return Math.min(MAX_RESULT_LENGTH, Math.max(128, estimated));
+  const estimated = Math.ceil(content.length * 2.2) + 256;
+  return Math.min(MAX_RESULT_LENGTH, Math.max(MIN_OUTPUT_TOKENS, estimated));
 }
 
 function apiBaseHasVersion(baseUrl: string): boolean {
@@ -283,12 +369,44 @@ function authConfig(provider: Provider): {
   return { headers, params };
 }
 
-function extractOpenAIText(data: any): string {
-  const content = data?.choices?.[0]?.message?.content;
+/** 从可能的多形态 content 字段提取纯文本 */
+function extractTextFromContent(content: unknown): string {
   if (typeof content === "string") return content.trim();
   if (Array.isArray(content)) {
-    return content.map((item: any) => String(item?.text || "")).join("\n").trim();
+    return content
+      .map((item: any) => {
+        if (typeof item === "string") return item;
+        if (item?.type === "text" || item?.type === "output_text") {
+          return String(item?.text || "");
+        }
+        return String(item?.text || item?.content || "");
+      })
+      .join("\n")
+      .trim();
   }
+  if (content && typeof content === "object") {
+    const obj = content as Record<string, unknown>;
+    if (typeof obj.text === "string") return obj.text.trim();
+    if (typeof obj.content === "string") return obj.content.trim();
+  }
+  return "";
+}
+
+function extractOpenAIText(data: any): string {
+  const choice = data?.choices?.[0];
+  const message = choice?.message ?? choice?.delta ?? null;
+
+  const fromContent = extractTextFromContent(message?.content);
+  if (fromContent) return fromContent;
+
+  const fromText = extractTextFromContent(message?.text ?? choice?.text ?? data?.output_text);
+  if (fromText) return fromText;
+
+  const fromOutput = extractTextFromContent(
+    message?.output_text ?? data?.output?.[0]?.content ?? data?.output,
+  );
+  if (fromOutput) return fromOutput;
+
   return "";
 }
 
@@ -296,19 +414,60 @@ function extractAnthropicText(data: any): string {
   const content = data?.content;
   if (typeof content === "string") return content.trim();
   if (!Array.isArray(content)) return "";
-  return content.map((item: any) => String(item?.text || "")).join("\n").trim();
+  return content
+    .map((item: any) => {
+      if (item?.type === "text" || !item?.type) return String(item?.text || "");
+      return "";
+    })
+    .join("\n")
+    .trim();
 }
 
 function extractGeminiText(data: any): string {
-  const parts = data?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(parts)) return "";
-  return parts.map((item: any) => String(item?.text || "")).join("\n").trim();
+  const candidate = data?.candidates?.[0];
+  const parts = candidate?.content?.parts;
+  if (Array.isArray(parts)) {
+    const text = parts
+      .map((item: any) => String(item?.text || ""))
+      .join("\n")
+      .trim();
+    if (text) return text;
+  }
+  return extractTextFromContent(candidate?.text ?? data?.text);
+}
+
+/** 构造空响应诊断信息，便于排查模型/网关问题 */
+function describeEmptyAIResponse(data: any, provider: Provider): string {
+  try {
+    const choice = data?.choices?.[0];
+    const message = choice?.message;
+    const finish = choice?.finish_reason || choice?.finishReason || data?.candidates?.[0]?.finishReason;
+    const hasReasoning = Boolean(
+      message?.reasoning_content || message?.reasoning || data?.candidates?.[0]?.content?.parts?.some?.((p: any) => p?.thought),
+    );
+    const refusal = message?.refusal ? String(message.refusal).slice(0, 80) : "";
+    const bits = [
+      `model=${provider.model}`,
+      finish ? `finish=${finish}` : "",
+      hasReasoning ? "has_reasoning=1" : "",
+      refusal ? `refusal=${refusal}` : "",
+      message?.content === null ? "content=null" : message?.content === "" ? "content=\"\"" : "",
+    ].filter(Boolean);
+    return bits.join(" ");
+  } catch {
+    return `model=${provider.model}`;
+  }
 }
 
 function polishPromptFor(path: EditPath): string {
   return path === "rich" ? POLISH_PROMPT_RICH : POLISH_PROMPT_ENTITIES;
 }
 
+/**
+ * OpenAI 兼容请求。
+ * 不把 max_tokens 与 max_completion_tokens 同时发送（多数网关会 400）。
+ * 若 400 提示 token 字段/temperature 不兼容，则自动降级重试一次。
+ */
 async function callOpenAI(
   provider: Provider,
   content: string,
@@ -322,21 +481,95 @@ async function callOpenAI(
     ? `${base}/chat/completions`
     : `${base}/v1/chat/completions`;
   const { headers, params } = authConfig(provider);
-  const response = await axios.post(
-    url,
-    {
-      model: provider.model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content },
-      ],
-      temperature: 0.2,
-      max_tokens: maxTokens,
-      stream: false,
-    },
-    { headers, params, timeout, signal },
-  );
-  return extractOpenAIText(response.data);
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content },
+  ];
+
+  // 新模型名（o1/o3/gpt-5 等）更常认 max_completion_tokens 且拒 temperature
+  const modelName = provider.model.toLowerCase();
+  const preferCompletionTokens =
+    /(?:^|[/\-_.])(?:o[1-9]|o3|gpt-5|chatgpt-4o-latest)/i.test(modelName) ||
+    /reason|think/i.test(modelName);
+
+  const attempts: Array<Record<string, unknown>> = preferCompletionTokens
+    ? [
+        {
+          model: provider.model,
+          messages,
+          max_completion_tokens: maxTokens,
+          stream: false,
+        },
+        {
+          model: provider.model,
+          messages,
+          max_tokens: maxTokens,
+          stream: false,
+        },
+      ]
+    : [
+        {
+          model: provider.model,
+          messages,
+          temperature: 0.2,
+          max_tokens: maxTokens,
+          stream: false,
+        },
+        {
+          model: provider.model,
+          messages,
+          max_tokens: maxTokens,
+          stream: false,
+        },
+        {
+          model: provider.model,
+          messages,
+          max_completion_tokens: maxTokens,
+          stream: false,
+        },
+      ];
+
+  let lastError: unknown = null;
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const response = await axios.post(url, attempts[i], {
+        headers,
+        params,
+        timeout,
+        signal,
+      });
+      const text = extractOpenAIText(response.data);
+      if (!text) {
+        throw new Error(
+          `AI 返回空内容（${describeEmptyAIResponse(response.data, provider)}）`,
+        );
+      }
+      return text;
+    } catch (error: unknown) {
+      lastError = error;
+      // 业务空内容错误不重试其它 body
+      if (!axios.isAxiosError(error)) throw error;
+      const ax = error as {
+        response?: { status?: number; data?: unknown };
+      };
+      const status = ax.response?.status;
+      const detail = summarizeApiErrorBody(ax.response?.data).toLowerCase();
+      const canRetry =
+        status === 400 &&
+        i < attempts.length - 1 &&
+        (/max_tokens|max_completion_tokens|temperature|unsupported|unknown parameter|invalid|not support/i.test(
+          detail,
+        ) ||
+          !detail);
+      if (!canRetry) throw error;
+      console.warn(
+        `[fwb] OpenAI 请求 400，尝试降级 body（${i + 1}/${attempts.length}）：${detail || "no detail"}`,
+      );
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`AI API 请求失败：${errorText(lastError)}`);
 }
 
 async function callAnthropic(
@@ -373,7 +606,13 @@ async function callAnthropic(
       signal,
     },
   );
-  return extractAnthropicText(response.data);
+  const text = extractAnthropicText(response.data);
+  if (!text) {
+    throw new Error(
+      `AI 返回空内容（${describeEmptyAIResponse(response.data, provider)}）`,
+    );
+  }
+  return text;
 }
 
 async function callGemini(
@@ -396,7 +635,18 @@ async function callGemini(
     },
     { headers, params, timeout, signal },
   );
-  return extractGeminiText(response.data);
+  const text = extractGeminiText(response.data);
+  if (!text) {
+    throw new Error(
+      `AI 返回空内容（${describeEmptyAIResponse(response.data, provider)}）`,
+    );
+  }
+  return text;
+}
+
+/** 比较用归一化：忽略首尾空白与换行风格，用于判断是否值得编辑 */
+function normalizeComparable(s: string): string {
+  return s.replace(/\r\n/g, "\n").replace(/[ \t]+\n/g, "\n").trim();
 }
 
 async function polishText(
@@ -423,6 +673,13 @@ async function polishText(
 
   text = text.trim();
   if (!text) throw new Error("AI 返回空内容");
+  // 仅做机械清理：去掉模型偶发的整段代码围栏。术语/间距/加粗一律交给 AI。
+  text = text
+    .replace(/^```(?:markdown|md|text)?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
+    .trim();
+  if (!text) throw new Error("AI 返回空内容（去围栏后）");
+
   if (text.length > MAX_RESULT_LENGTH) {
     throw new Error(`AI 返回内容超过 ${MAX_RESULT_LENGTH} 个 UTF-16 代码单元`);
   }
@@ -439,9 +696,23 @@ function isRichMessageUnsupported(error: unknown): boolean {
 }
 
 function isOwnOutgoingMessage(msg: MessageContext): boolean {
+  // 只认明确的出站标记；Saved Messages 的 isSelf 仅作补充
   if (msg.isOutgoing === true) return true;
-  const chat = msg.chat as { isSelf?: boolean } | undefined;
-  return chat?.isSelf === true;
+  // isOutgoing 缺失时，Saved Messages 自己发给自己仍可编辑
+  if (msg.isOutgoing == null) {
+    const chat = msg.chat as { isSelf?: boolean } | undefined;
+    return chat?.isSelf === true;
+  }
+  return false;
+}
+
+/** 是否像“机器人/频道服务输出”等不应润色的消息 */
+function looksLikeForeignOrServiceMessage(msg: MessageContext): boolean {
+  if (msg.isOutgoing === false) return true;
+  if (msg.media || msg.forward || msg.viaBot) return true;
+  if ((msg as any).action) return true;
+  if ((msg as any).isChannelPost === true || (msg as any).post === true) return true;
+  return false;
 }
 
 /** chatKey → 抑制截止时间戳；用于过滤其他命令发出的纯文本回包 */
@@ -484,6 +755,8 @@ function textLooksLikeCommand(text: string): boolean {
     const body = trimmed.slice(p.length);
     if (/^[a-zA-Z一-鿿]/.test(body)) return true;
   }
+  // 斜杠机器人命令：/start@bot
+  if (/^\/[a-zA-Z][\w]{0,63}(?:@[\w]+)?(?:\s|$)/.test(trimmed)) return true;
   return false;
 }
 
@@ -518,16 +791,30 @@ function shouldSkipPluginOrCommandOutput(
   return false;
 }
 
+function messageAgeMs(msg: MessageContext): number | null {
+  // mtcute: date 可能是 Date / 秒 / 毫秒
+  const raw = (msg as any).date ?? (msg as any).raw?.date;
+  if (raw == null) return null;
+  let tsMs: number;
+  if (raw instanceof Date) {
+    tsMs = raw.getTime();
+  } else if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    tsMs = raw > 1e12 ? raw : raw * 1000;
+  } else {
+    return null;
+  }
+  return Date.now() - tsMs;
+}
+
 function isEligibleMessage(msg: MessageContext): boolean {
   const text = msg.text || "";
-  return Boolean(
-    isOwnOutgoingMessage(msg) &&
-      text.trim() &&
-      text.length <= MAX_SOURCE_LENGTH &&
-      !msg.media &&
-      !msg.forward &&
-      !msg.viaBot,
-  );
+  if (!text.trim() || text.length > MAX_SOURCE_LENGTH) return false;
+  if (looksLikeForeignOrServiceMessage(msg)) return false;
+  if (!isOwnOutgoingMessage(msg)) return false;
+  // 只处理刚发出的消息，避免历史回放/同步记录误入
+  const age = messageAgeMs(msg);
+  if (age != null && (age < -5_000 || age > MAX_MESSAGE_AGE_MS)) return false;
+  return true;
 }
 
 function extractPremiumFlag(me: any): boolean {
@@ -559,6 +846,7 @@ function probeRichEditSupport(msg: MessageContext): boolean {
 }
 
 function resolveEditPathLocked(config: FwbConfig, canTryRich: boolean): EditPath | null {
+  // free：永远 entities，不依赖探测缓存
   if (config.accountMode === "free") return "entities";
   if (config.accountMode === "premium") {
     if (!canTryRich) return "entities";
@@ -695,6 +983,7 @@ class FwbPlugin extends Plugin {
     this.config.editPath = null;
     if (mode === "free") {
       this.config.editPath = "entities";
+      // free 不代表账号非 Premium；仅锁定编辑路径，Premium 状态另探
       this.config.detectedAt = Date.now();
     } else if (mode === "premium") {
       // 强制 premium：先标 rich，若运行时/服务端不支持会在首次编辑降级
@@ -747,6 +1036,31 @@ class FwbPlugin extends Plugin {
   }
 
   private async ensureEditPath(msg?: MessageContext): Promise<EditPath> {
+    // free：路径固定 entities；若 Premium 未知则后台补探一次（不影响编辑路径）
+    if (this.config.accountMode === "free") {
+      if (this.config.editPath !== "entities") {
+        await this.lockEditPath("entities", this.config.detectedPremium);
+      }
+      if (this.config.detectedPremium === null && !detectInflight) {
+        detectInflight = (async () => {
+          try {
+            const premium = await this.fetchPremiumFlag(msg);
+            this.config.detectedPremium = premium;
+            this.config.detectedAt = Date.now();
+            await this.persist();
+            console.log(`[fwb] free 模式补探 Premium=${premium}（路径仍 entities）`);
+          } catch (error) {
+            console.warn(`[fwb] free 模式 Premium 补探失败：${errorText(error)}`);
+          }
+          return "entities" as EditPath;
+        })().finally(() => {
+          detectInflight = null;
+        });
+        void detectInflight;
+      }
+      return "entities";
+    }
+
     const canTryRich = msg ? probeRichEditSupport(msg) : richApiAvailable !== false;
     const locked = resolveEditPathLocked(this.config, canTryRich);
     if (locked) return locked;
@@ -754,11 +1068,6 @@ class FwbPlugin extends Plugin {
     if (detectInflight) return detectInflight;
 
     detectInflight = (async () => {
-      if (this.config.accountMode === "free") {
-        await this.lockEditPath("entities", this.config.detectedPremium);
-        return "entities";
-      }
-
       if (this.config.accountMode === "premium") {
         // 强制 rich；真正能力由首次 edit 确认
         await this.lockEditPath("rich", true);
@@ -787,13 +1096,28 @@ class FwbPlugin extends Plugin {
     return detectInflight;
   }
 
+  /**
+   * 判断润色结果相对原文是否「完全不必编辑」。
+   * 仅在最终 markdown 与原文完全一致（或仅换行空白）时跳过；
+   * 空格差异、大小写、加粗等都应继续编辑（如「反正是vps」→「反正是 **VPS**」）。
+   */
+  private isEffectivelyUnchanged(original: string, polishedMarkdown: string): boolean {
+    return normalizeComparable(original) === normalizeComparable(polishedMarkdown);
+  }
+
   private async editWithEntities(msg: MessageContext, markdown: string): Promise<void> {
     const htmlText = TelegramFormatter.markdownToHtml(markdown);
-    await msg.edit({
-      text: htmlText,
-      parseMode: "html",
-      linkPreview: false,
-    } as any);
+    try {
+      await msg.edit({
+        text: htmlText,
+        parseMode: "html",
+        linkPreview: false,
+      } as any);
+    } catch (error) {
+      // 内容与当前消息完全一致 → 视为成功（无需修改）
+      if (isMessageNotModified(error)) return;
+      throw error;
+    }
   }
 
   /**
@@ -815,6 +1139,7 @@ class FwbPlugin extends Plugin {
         return;
       } catch (error) {
         lastError = error;
+        if (isMessageNotModified(error)) return;
         // 参数不被识别的类型错误继续试下一种；明确 RICH_MESSAGE_UNSUPPORTED 直接抛
         if (isRichMessageUnsupported(error)) throw error;
       }
@@ -824,18 +1149,31 @@ class FwbPlugin extends Plugin {
       : new Error(`RichMessage 编辑失败：${errorText(lastError)}`);
   }
 
+  /**
+   * 按已缓存路径直接编辑；rich 若首次被服务端拒绝则降级 entities 并锁定。
+   * @returns usedPath；unchanged=true 表示内容实质未变，已跳过编辑
+   */
   private async editPolishedMessage(
     msg: MessageContext,
     markdown: string,
     editPath: EditPath,
-  ): Promise<EditPath> {
+    originalText?: string,
+  ): Promise<{ path: EditPath; unchanged: boolean }> {
     if (!isOwnOutgoingMessage(msg)) {
       throw new Error("非本人发出的消息，跳过编辑");
     }
 
-    if (editPath === "entities") {
+    if (originalText != null && this.isEffectivelyUnchanged(originalText, markdown)) {
+      return {
+        path: editPath === "rich" && this.config.accountMode !== "free" ? "rich" : "entities",
+        unchanged: true,
+      };
+    }
+
+    // free / 明确 entities：绝不尝试 rich
+    if (editPath === "entities" || this.config.accountMode === "free") {
       await this.editWithEntities(msg, markdown);
-      return "entities";
+      return { path: "entities", unchanged: false };
     }
 
     try {
@@ -845,7 +1183,7 @@ class FwbPlugin extends Plugin {
       if (this.config.editPath !== "rich") {
         await this.lockEditPath("rich", this.config.detectedPremium ?? true);
       }
-      return "rich";
+      return { path: "rich", unchanged: false };
     } catch (error) {
       // 不支持或参数全失败 → 降级并锁定 entities，避免后续每条试错
       richApiAvailable = false;
@@ -854,7 +1192,7 @@ class FwbPlugin extends Plugin {
         `[fwb] RichMessage 不可用，已降级并锁定 entities：${errorText(error)}`,
       );
       await this.editWithEntities(msg, markdown);
-      return "entities";
+      return { path: "entities", unchanged: false };
     }
   }
 
@@ -994,6 +1332,8 @@ class FwbPlugin extends Plugin {
     _options?: { isEdited?: boolean },
   ): Promise<void> => {
     if (!this.config.enabled || !this.signal || this.signal.aborted) return;
+    // 第一道硬门：非本人出站一律忽略，避免处理别人的消息记录
+    if (!isOwnOutgoingMessage(msg)) return;
     if (!isEligibleMessage(msg)) return;
 
     const chatKey = messageChatKey(msg);
@@ -1022,29 +1362,63 @@ class FwbPlugin extends Plugin {
       const queueMs = Date.now() - queueStarted;
       if (!this.config.enabled || this.signal.aborted) return;
 
+      // 二次确认：排队期间消息对象可能被复用/变更
+      if (!isOwnOutgoingMessage(msg)) return;
+
       const detectStarted = Date.now();
       const editPath = await this.ensureEditPath(msg);
       const detectMs = Date.now() - detectStarted;
 
+      // free 模式绝对不允许 rich，防止配置漂移触发 RICH_MESSAGE_UNSUPPORTED
+      const safePath: EditPath =
+        this.config.accountMode === "free" ? "entities" : editPath;
+
       const original = msg.text || "";
-      const result = await polishText(original, this.signal, editPath);
+      const result = await polishText(original, this.signal, safePath);
       if (this.signal.aborted || !this.config.enabled) return;
 
+      if (!isOwnOutgoingMessage(msg)) return;
+
       const editStarted = Date.now();
-      const usedPath = await this.editPolishedMessage(msg, result.text, editPath);
+      const editResult = await this.editPolishedMessage(
+        msg,
+        result.text,
+        safePath,
+        original,
+      );
       const editMs = Date.now() - editStarted;
       const totalMs = Date.now() - totalStarted;
-      console.log(
-        `[fwb] 消息 ${String(msg.id)} 已用 ${result.model} 润色 | ` +
-          `路径 ${usedPath} | 总耗时 ${totalMs}ms ` +
-          `(排队 ${queueMs}ms / 探测 ${detectMs}ms / AI ${result.aiMs}ms / 编辑 ${editMs}ms) | ` +
-          `max_tokens=${result.maxTokens} 原文 ${original.length} 字`,
-      );
+      if (editResult.unchanged) {
+        console.log(
+          `[fwb] 消息 ${String(msg.id)} 润色结果与原文实质相同，跳过编辑 | ` +
+            `模型 ${result.model} | 总耗时 ${totalMs}ms（AI ${result.aiMs}ms）`,
+        );
+      } else {
+        console.log(
+          `[fwb] 消息 ${String(msg.id)} 已用 ${result.model} 润色 | ` +
+            `路径 ${editResult.path} | 总耗时 ${totalMs}ms ` +
+            `(排队 ${queueMs}ms / 探测 ${detectMs}ms / AI ${result.aiMs}ms / 编辑 ${editMs}ms) | ` +
+            `max_tokens=${result.maxTokens} 原文 ${original.length} 字`,
+        );
+      }
     } catch (error) {
       if (!this.signal?.aborted) {
-        console.error(
-          `[fwb] 消息 ${String(msg.id)} 润色失败，保留原文（${Date.now() - totalStarted}ms）：${errorText(error)}`,
-        );
+        // 内容未修改不算失败
+        if (isMessageNotModified(error)) {
+          console.log(
+            `[fwb] 消息 ${String(msg.id)} 内容未变化，跳过编辑（${Date.now() - totalStarted}ms）`,
+          );
+        } else {
+          if (
+            isRichMessageUnsupported(error) &&
+            this.config.accountMode !== "premium"
+          ) {
+            await this.lockEditPath("entities", this.config.detectedPremium);
+          }
+          console.error(
+            `[fwb] 消息 ${String(msg.id)} 润色失败，保留原文（${Date.now() - totalStarted}ms）：${errorText(error)}`,
+          );
+        }
       }
     } finally {
       release?.();
