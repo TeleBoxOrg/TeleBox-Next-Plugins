@@ -629,20 +629,14 @@ function detectQuoteImageExt(buffer: Buffer): "webp" | "png" | "webm" {
     buffer.length >= 8 &&
     buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
   ) return "png";
-  // WebM (EBML header + "webm" signature)
+  // WebM (EBML header)
   if (
     buffer.length >= 4 &&
     buffer[0] === 0x1a &&
     buffer[1] === 0x45 &&
     buffer[2] === 0xdf &&
     buffer[3] === 0xa3
-  ) {
-    // Verify it's WebM by checking for "webm" string after EBML header
-    const headerStr = buffer.subarray(0, Math.min(32, buffer.length)).toString("ascii");
-    if (headerStr.includes("webm")) return "webm";
-    // Even without explicit "webm" string, EBML header with video codecs likely means WebM
-    return "webm";
-  }
+  ) return "webm";
   const preview = buffer.subarray(0, 120).toString("utf8").replace(/\s+/g, " ").trim();
   throw new Error(`quote-api 返回了非图片/视频数据${preview ? `：${preview.slice(0, 100)}` : ""}`);
 }
@@ -824,35 +818,12 @@ class YvluPlugin extends Plugin {
         outputFormat = args[1] === "png" ? "image" : args[1];
         count = parseInt(args[2]) || 1;
         valid = true;
-      } else {
-        // 造谣文本本身也是合法参数，后续解析器会保留完整原文。
-        valid = true;
       }
 
       if (saveToSet) {
         // 处理保存贴纸/图片到贴纸包的逻辑
         await this.handleSaveStickerToSet(msg);
       } else if (valid) {
-        // 造谣模式：第一个非选项参数起，后续内容全部按原文保留。
-        const optionArgs = args.slice(1);
-        let fabricateText: string | undefined;
-        for (let i = 0; i < optionArgs.length; i++) {
-          const value = optionArgs[i].toLowerCase();
-          const isOption =
-            value === "r" ||
-            value === "reply" ||
-            value === "s" ||
-            value === "webp" ||
-            value === "image" ||
-            value === "png" ||
-            value === "stories" ||
-            /^\d+$/.test(value);
-          if (!isOption) {
-            fabricateText = optionArgs.slice(i).join(" ");
-            break;
-          }
-        }
-
         let replied = await safeGetReplyMessage(msg);
         if (!replied) {
           await msg.edit({ text: "请回复一条消息" });
@@ -1229,8 +1200,8 @@ class YvluPlugin extends Plugin {
                   ? String(emojiStatus)
                   : undefined,
               },
-              text: fabricateText && i === 0 ? fabricateText : (message.text || ""),
-              entities: fabricateText && i === 0 ? [] : entities,
+              text: message.text || "",
+              entities: entities,
               avatar: shouldShowAvatar,
               ...(replyBlock ? { replyMessage: replyBlock } : {}),
             };
