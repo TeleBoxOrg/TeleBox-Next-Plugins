@@ -1,4 +1,4 @@
-import { Plugin } from "@utils/pluginBase"; import { getPrefixes } from "@utils/pluginManager"; import type { MessageContext } from "@mtcute/dispatcher"; import * as fs from "fs/promises"; import path from "path"; import axios from "axios"; import { createDirectoryInAssets } from "@utils/pathHelpers"; import { getErrorMessage } from "@utils/errorHelpers"; import { thtml as html } from "@mtcute/html-parser";
+import { Plugin } from "@utils/pluginBase"; import { getPrefixes } from "@utils/pluginManager"; import type { MessageContext } from "@mtcute/dispatcher"; import * as fs from "fs/promises"; import path from "path"; import axios from "axios"; import { createDirectoryInAssets } from "@utils/pathHelpers"; import { getErrorMessage } from "@utils/errorHelpers"; import { thtml as html } from "@mtcute/html-parser"; import { htmlEscape } from "@utils/htmlEscape";
 
 const pfx = getPrefixes(); const mp = pfx[0];
 const DD = createDirectoryInAssets("checkapi"); const KF = path.join(DD, "keys.json");
@@ -28,7 +28,7 @@ function jp(base:string, pathSeg:string):string{
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ge(e:unknown):string{const o=e as any; return String(o?.message||o?.stderr||e||"未知错误");}
-function fh(h?:Record<string,string>):string{if(!h||!Object.keys(h).length)return"";const l:string[]=[];for(const[k,v]of Object.entries(h)){l.push(`  ⚡ ${k.replace(/-/g," ")}: ${v}`);}return l.join("\n");}
+function fh(h?:Record<string,string>):string{if(!h||!Object.keys(h).length)return "";const l:string[]=[];for(const[k,v]of Object.entries(h)){l.push(`  ⚡ ${htmlEscape(k.replace(/-/g," "))}: ${htmlEscape(v)}`);}return l.join("\n");}
 
 // ── Smart input parser: curl / env / json ──
 function parseCurl(s: string): { key?: string; url?: string } | null {
@@ -267,7 +267,7 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
   if(!names.length)return"❌ 未找到可用模型";
 
   // Single blockquote with all models, truncated for single message
-  const allModels = names.map(n=>`<code>${n}</code>`).join(" | ");
+  const allModels = names.map(n=>`<code>${htmlEscape(n)}</code>`).join(" | ");
   const content = `<blockquote expandable>${allModels}</blockquote>`;
   const header = `🤖 共 ${names.length} 个`;
   
@@ -276,7 +276,7 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
     const chunks: string[] = [];
     let current = "";
     for(const n of names){
-      const part = `<code>${n}</code> | `;
+      const part = `<code>${htmlEscape(n)}</code> | `;
       if(current.length + part.length > 3500){
         chunks.push(`<blockquote expandable>${current.slice(0, -3)}</blockquote>`);
         current = "";
@@ -294,12 +294,12 @@ async function lmf(provider:string,key:string,baseUrl:string): Promise<string>{
 async function fcv2(provider:string,key:string,baseUrl?:string): Promise<string[]>{
   const rs:string[]=[];const info=dp(key,baseUrl);
   const base = info.baseUrl || "";
-  rs.push(`🔍 <b>${info.displayName}</b> (${info.provider}, ${info.confidence})`);
+  rs.push(`🔍 <b>${htmlEscape(info.displayName)}</b> (${htmlEscape(info.provider)}, ${htmlEscape(info.confidence)})`);
   rs.push(`🔑 ${mk(key)}`);
   rs.push(`\n💰 <b>账户余额</b>：`);
   try{rs.push(await cb(provider,key,base));}catch(e:unknown){rs.push(`⚠️ ${ge(e)}`);}
   rs.push(`\n💬 <b>对话测试</b>：`);
-  try{const chat=await ct(provider,key,base);if(chat.ok){rs.push(`✅ 响应: "${chat.text}" (${chat.elapsedMs}ms) | 🤖 <code>${chat.model}</code>`);if(chat.usage)rs.push(`📊 Token: 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)rs.push(fh(chat.headers));}else{rs.push(`❌ 失败: ${chat.error||"无响应"}`);}}catch(e:unknown){rs.push(`⚠️ ${ge(e)}`);}
+  try{const chat=await ct(provider,key,base);if(chat.ok){rs.push(`✅ 响应: "${htmlEscape(chat.text)}" (${chat.elapsedMs}ms) | 🤖 <code>${htmlEscape(chat.model)}</code>`);if(chat.usage)rs.push(`📊 Token: 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)rs.push(fh(chat.headers));}else{rs.push(`❌ 失败: ${htmlEscape(chat.error||"无响应")}`);}}catch(e:unknown){rs.push(`⚠️ ${htmlEscape(ge(e))}`);}
   rs.push(`\n📋 <b>可用模型</b>：`);
   try{rs.push(await lmf(provider,key,base));}catch(e:unknown){rs.push(`⚠️ ${ge(e)}`);}
   return rs;
@@ -313,15 +313,16 @@ async function speedTest(provider:string,key:string,baseUrl:string): Promise<str
   const hdrs:Record<string,string>={"content-type":"application/json"};
   if(info.authHeader)hdrs["Authorization"]=info.authHeader;
 
-  const rs:string[]=[`⚡ <b>${info.displayName}</b> 速度测试 (最多 50 token)：`];
+  const rs:string[]=[`⚡ <b>${htmlEscape(info.displayName)}</b> 速度测试 (最多 50 token)：`];
   for(const m of testModels){
     try{
       const start=Date.now();
       const r=await ap(info.chatUrl,hdrs,{model:m,messages:[{role:"user",content:"ok"}],max_tokens:50,temperature:0},30000);
       const elapsed=Date.now()-start;
-      if(r.ok){const d=r.data as Record<string,unknown>|undefined;const tps=r.data?(((d?.usage as Record<string,number>|undefined)?.total_tokens||0)/(elapsed/1000)).toFixed(1):"?";rs.push(`  ✅ <code>${m}</code>: ${elapsed}ms (${tps} tok/s)`);}
-      else rs.push(`  ❌ <code>${m}</code>: ${r.error?.slice(0,60)||"失败"}`);
-    }catch(e:unknown){rs.push(`  ❌ <code>${m}</code>: ${ge(e).slice(0,60)}`);}
+      if(r.ok){const d=r.data as Record<string,unknown>|undefined;const tps=r.data?(((d?.usage as Record<string,number>|undefined)?.total_tokens||0)/(elapsed/1000)).toFixed(1):"?";
+rs.push(`  ✅ <code>${htmlEscape(m)}</code>: ${elapsed}ms (${tps} tok/s)`);}
+      else rs.push(`  ❌ <code>${htmlEscape(m)}</code>: ${htmlEscape(r.error?.slice(0,60)||"失败")}`);
+    }catch(e:unknown){rs.push(`  ❌ <code>${htmlEscape(m)}</code>: ${htmlEscape(ge(e).slice(0,60))}`);}
   }
   return rs;
 }
@@ -375,11 +376,10 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
 
   // ── models / ask / speed ──
   if(sub==="models"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi models &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key);await msg.edit({text:html`🔍 ${info.displayName} 模型列表...`});const result=await lmf(info.provider,key,info.baseUrl);await msg.edit({text:html`${result}`});return;}
-  if(sub==="ask"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);const qParts:string[]=[];for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!key){key=a;continue;}qParts.push(a);}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);const prompt=qParts.join(" ")||"say hello";if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi ask &lt;key|name&gt; &lt;问题&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`💬 ${info.displayName}: "${prompt}" ...`});const chat=await ct(info.provider,key,info.baseUrl,prompt);if(chat.ok){const l=[`💬 <b>${info.displayName}</b>`,`🤖 <code>${chat.model}</code> | 🕐 ${chat.elapsedMs}ms`,`📝 ${chat.text}`];if(chat.usage)l.push(`📊 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)l.push(fh(chat.headers));await msg.edit({text:html`${l.join("\n")}`});}else{await msg.edit({text:html`❌ (${chat.elapsedMs||"?"}ms): ${chat.error}`});}return;}
-  if(sub==="speed"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi speed &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`⚡ ${info.displayName} 速度测试中...`});const results=await speedTest(info.provider,key,info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
+  if(sub==="ask"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);const qParts:string[]=[];for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!key){key=a;continue;}qParts.push(a);}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);const prompt=qParts.join(" ")||"say hello";if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi ask <key|name> <问题></code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`💬 ${htmlEscape(info.displayName)}: "${htmlEscape(prompt)}" ...`});const chat=await ct(info.provider,key,info.baseUrl,prompt);if(chat.ok){const l=[`💬 <b>${htmlEscape(info.displayName)}</b>`,`🤖 <code>${htmlEscape(chat.model)}</code> | 🕐 ${chat.elapsedMs}ms`,`📝 ${htmlEscape(chat.text)}`];if(chat.usage)l.push(`📊 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)l.push(fh(chat.headers));await msg.edit({text:html`${l.join("\n")}`});}else{await msg.edit({text:html`❌ (${chat.elapsedMs||"?"}ms): ${htmlEscape(chat.error)}`});}return;}if(sub==="speed"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi speed &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`⚡ ${htmlEscape(info.displayName)} 速度测试中...`});const results=await speedTest(info.provider,key,info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
 
   // ── compare: two keys side by side ──
-  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:html`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`});return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:html`🔍 正在对比 <b>${r1.label}</b> vs <b>${r2.label}</b>...`});const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,r2.baseUrl)]);const m=[`⚖️ <b>${p1.displayName}</b> (${r1.label})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:html`${m.join("\n")}`});return;}
+  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:html`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`});return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:html`🔍 正在对比 <b>${htmlEscape(r1.label)}</b> vs <b>${htmlEscape(r2.label)}</b>...`});const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,r2.baseUrl)]);const m=[`⚖️ <b>${htmlEscape(p1.displayName)}</b> (${htmlEscape(r1.label)})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:html`${m.join("\n")}`});return;}
 
   // ── Inline key: auto-detect + full check ──
   let key:string,baseUrl:string|undefined;let label:string;const keys=await lk();
@@ -387,9 +387,9 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
   else if(parts.length>=2&&isUrl(parts[1])){key=parts[0];baseUrl=nu(parts[1]);const found=keys.find(k=>k.name===key);label=found?found.name:mk(key);key=found?found.key:key;}
   else{const input=parts[0];const found=keys.find(k=>k.name===input);key=found?found.key:input;baseUrl=found?.baseUrl;label=found?found.name:mk(key);}
   let info:PI;if(baseUrl){await msg.edit({text:html`检测中...`});info=await probeApi(baseUrl,key);}else{info=dp(key,baseUrl);}
-  await msg.edit({text:html`🔍 <b>${label}</b> (${info.displayName}) 检测中...`});
+  await msg.edit({text:html`🔍 <b>${htmlEscape(label)}</b> (${htmlEscape(info.displayName)}) 检测中...`});
   const results=await fcv2(info.provider,key,info.baseUrl);
-  results.unshift(`🔍 <b>${label}</b>`);
+  results.unshift(`🔍 <b>${htmlEscape(label)}</b>`);
   await msg.edit({text:html`${results.join("\n")}`});
 },};}
 
