@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Plugin } from "@utils/pluginBase";
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField, type PanelFieldType } from "@utils/pluginBase";
 import { getGlobalClient } from "@utils/runtimeManager";
 import { getPrefixes } from "@utils/pluginManager";
 import { createDirectoryInAssets, createDirectoryInTemp } from "@utils/pathHelpers";
@@ -1384,5 +1384,67 @@ class MusicHubPlugin extends Plugin {
     await this.handleSearch(msg, config.defaultSource, args.join(" "));
   }
 }
+
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "music",
+    title: "音乐搜索",
+    description: "音乐搜索配置：默认音源、音质、搜索结果数",
+    category: "插件配置",
+    icon: "🎵",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "defaultSource",
+            "label": "默认音源",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "auto",
+                        "label": "自动"
+                  },
+                  {
+                        "value": "qq",
+                        "label": "QQ音乐"
+                  },
+                  {
+                        "value": "netease",
+                        "label": "网易云"
+                  }
+            ]
+      },
+      {
+            "key": "br",
+            "label": "音质",
+            "type": "string",
+            "default": "999"
+      },
+      {
+            "key": "maxResults",
+            "label": "最大搜索结果",
+            "type": "number",
+            "min": 10,
+            "max": 100,
+            "default": 30
+      },
+      {
+            "key": "maxUploadBytes",
+            "label": "最大上传大小 (字节)",
+            "type": "number",
+            "min": 1048576,
+            "max": 1073741824,
+            "default": 104857600
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<MusicHubConfig>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<MusicHubConfig>(path.join(createDirectoryInAssets("music"), "config.json"), DEFAULT_CONFIG);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 
 export default new MusicHubPlugin();
