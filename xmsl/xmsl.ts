@@ -1,4 +1,4 @@
-import { Plugin } from '@utils/pluginBase';
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField, type PanelFieldType } from '@utils/pluginBase';
 import { getPrefixes } from "@utils/pluginManager";
 import { htmlEscape } from "@utils/htmlEscape";
 import type { MessageContext } from "@mtcute/dispatcher";
@@ -752,5 +752,63 @@ model: <code>${this.config.model}</code>\n
 		);
 	}
 }
+
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "xmsl",
+    title: "XMSL 表情包",
+    description: "XMSL 表情包 API 配置",
+    category: "插件配置",
+    icon: "😂",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "apiMode",
+            "label": "API 模式",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "youdao",
+                        "label": "有道"
+                  },
+                  {
+                        "value": "baidu",
+                        "label": "百度"
+                  },
+                  {
+                        "value": "openai",
+                        "label": "OpenAI"
+                  }
+            ]
+      },
+      {
+            "key": "baseUrl",
+            "label": "API 地址",
+            "type": "string"
+      },
+      {
+            "key": "apiKey",
+            "label": "API 密钥",
+            "type": "password",
+            "secret": true
+      },
+      {
+            "key": "model",
+            "label": "模型",
+            "type": "string"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<XMSLConfig>(path.join(createDirectoryInAssets("xmsl"), "config.json"), {} as any);
+      return db.data as Record<string, unknown>;
+    }
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<XMSLConfig>(path.join(createDirectoryInAssets("xmsl"), "config.json"), {} as any);
+      Object.assign(db.data, patch);
+      await db.write();
+    }
+    },
+  };
 
 export default new XMSLPlugin();

@@ -1,6 +1,6 @@
 "use strict";
 
-import { Plugin } from "@utils/pluginBase";
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField, type PanelFieldType } from "@utils/pluginBase";
 import type { MessageContext } from "@mtcute/dispatcher";
 import { thtml as html } from "@mtcute/html-parser";
 import { getPrefixes } from "@utils/pluginManager";
@@ -606,5 +606,41 @@ class PanguPlugin extends Plugin {
 
   listenMessageHandlerIgnoreEdited = false;
 }
+
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "pangu",
+    title: "盘古格式",
+    description: "消息格式化配置",
+    category: "插件配置",
+    icon: "🔄",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "globalMode",
+            "label": "全局模式",
+            "type": "boolean"
+      },
+      {
+            "key": "whitelist",
+            "label": "白名单 (群组ID)",
+            "type": "json"
+      },
+      {
+            "key": "blacklist",
+            "label": "黑名单 (群组ID)",
+            "type": "json"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<PanguConfig>(path.join(createDirectoryInAssets("pangu"), "config.json"), defaultConfig);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<PanguConfig>(path.join(createDirectoryInAssets("pangu"), "config.json"), defaultConfig);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 
 export default new PanguPlugin();

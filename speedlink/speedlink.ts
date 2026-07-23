@@ -990,4 +990,71 @@ class SpeedlinkPlugin extends Plugin {
   };
 }
 
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "speedlink",
+    title: "SpeedLink 服务器",
+    description: "SpeedLink 服务器连接配置",
+    category: "插件配置",
+    icon: "🔗",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "name",
+            "label": "服务器名称",
+            "type": "string"
+      },
+      {
+            "key": "host",
+            "label": "主机地址",
+            "type": "string"
+      },
+      {
+            "key": "port",
+            "label": "端口",
+            "type": "number",
+            "min": 1,
+            "max": 65535,
+            "default": 22
+      },
+      {
+            "key": "username",
+            "label": "用户名",
+            "type": "string"
+      },
+      {
+            "key": "auth_method",
+            "label": "认证方式",
+            "type": "select",
+            "options": [
+                  {
+                        "value": "password",
+                        "label": "密码"
+                  },
+                  {
+                        "value": "key",
+                        "label": "密钥"
+                  }
+            ]
+      },
+      {
+            "key": "credentials",
+            "label": "凭据",
+            "type": "password",
+            "secret": true
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key");
+const CONFIG_PATH = path.join(ASSETS_DIR, "config.json"), {} as any);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key");
+const CONFIG_PATH = path.join(ASSETS_DIR, "config.json"), {} as any);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
+
 export default new SpeedlinkPlugin();

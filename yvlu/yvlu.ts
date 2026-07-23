@@ -6,7 +6,7 @@ import { htmlEscape } from "@utils/htmlEscape";
 import axios from "axios";
 import _ from "lodash";
 import { getPrefixes } from "@utils/pluginManager";
-import { Plugin } from "@utils/pluginBase";
+import { Plugin, type PanelSettingsAdapter, type PanelSettingField, type PanelFieldType } from "@utils/pluginBase";
 import {
   createDirectoryInAssets,
   createDirectoryInTemp,
@@ -1765,5 +1765,31 @@ ${codeTag(this.configPath)}
     }
   }
 }
+
+
+  // Panel Settings Adapter
+  panelAdapter: PanelSettingsAdapter = {
+    id: "yvlu",
+    title: "语录贴纸",
+    description: "语录贴纸配置",
+    category: "插件配置",
+    icon: "💬",
+    getSchema: (): PanelSettingField[] => [
+      {
+            "key": "stickerSetShortName",
+            "label": "贴纸包短名",
+            "type": "string"
+      }
+],
+    getValues: async (): Promise<Record<string, unknown>> => {
+      const db = await JSONFilePreset<YvluConfig>(path.join(createDirectoryInAssets("yvlu"), "config.json"), defaultConfig);
+      return db.data as Record<string, unknown>;
+    },
+    setValues: async (patch: Record<string, unknown>): Promise<void> => {
+      const db = await JSONFilePreset<YvluConfig>(path.join(createDirectoryInAssets("yvlu"), "config.json"), defaultConfig);
+      Object.assign(db.data, patch);
+      await db.write();
+    },
+  };
 
 export default new YvluPlugin();
