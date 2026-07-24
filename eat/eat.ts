@@ -507,7 +507,6 @@ class EatPlugin extends Plugin {
       await fn(msg, trigger, true);
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -567,5 +566,6 @@ class EatPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new EatPlugin();

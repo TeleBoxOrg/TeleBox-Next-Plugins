@@ -693,7 +693,6 @@ class TracePlugin extends Plugin {
           this.scheduleDelete(msg, seconds);
       }
   }
-}
 
 
   // Panel Settings Adapter
@@ -731,5 +730,6 @@ class TracePlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new TracePlugin();

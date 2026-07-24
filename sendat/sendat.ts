@@ -643,7 +643,6 @@ seconds, minutes, hours, date, times`;
       throw new Error(`添加任务失败: ${getErrorMessage(error)}`);
     }
   }
-}
 
 
   // Panel Settings Adapter
@@ -676,5 +675,6 @@ seconds, minutes, hours, date, times`;
       await db.write();
     },
   };
+}
 
 export default new SendAtPlugin();

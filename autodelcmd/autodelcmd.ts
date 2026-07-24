@@ -1149,7 +1149,6 @@ class AutoDeletePlugin extends Plugin {
       logger.error("[autodelcmd] listenMessageHandler 错误:", error);
     }
   };
-}
 
 
   // Panel Settings Adapter
@@ -1176,6 +1175,7 @@ class AutoDeletePlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new AutoDeletePlugin();
 

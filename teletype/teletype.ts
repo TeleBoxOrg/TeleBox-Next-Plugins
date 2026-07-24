@@ -283,7 +283,6 @@ class TeletypePlugin extends Plugin {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-}
 
 
   // Panel Settings Adapter
@@ -310,5 +309,6 @@ class TeletypePlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new TeletypePlugin();

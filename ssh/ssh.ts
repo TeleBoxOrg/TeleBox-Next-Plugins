@@ -1510,7 +1510,6 @@ ${keysContent}`;
     });
   }
 
-}
 
 
   // Panel Settings Adapter
@@ -1576,5 +1575,6 @@ ${keysContent}`;
       await db.write();
     },
   };
+}
 
 export default new SSHPlugin();

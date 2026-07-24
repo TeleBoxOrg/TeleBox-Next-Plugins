@@ -1435,7 +1435,6 @@ class SayPlugin extends Plugin {
     }
 
     listenMessageHandlerIgnoreEdited = true;
-}
 
 
   // Panel Settings Adapter
@@ -1494,5 +1493,6 @@ class SayPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new SayPlugin();

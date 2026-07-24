@@ -793,7 +793,6 @@ class NeZhaPlugin extends Plugin {
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     nezha,
   };
-}
 
 
   // Panel Settings Adapter
@@ -836,5 +835,6 @@ class NeZhaPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new NeZhaPlugin();

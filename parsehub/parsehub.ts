@@ -531,7 +531,7 @@ class ParseHubPlugin extends Plugin {
 
       const state: InitState = {
         initialized: Boolean(patch.initialized ?? initState.initialized),
-        ignoredUpToId: Number(patch.ignoredUpToId ?? initState.ignoredUpToId || 0) || 0,
+        ignoredUpToId: (Number(patch.ignoredUpToId ?? initState.ignoredUpToId) || 0) || 0,
       };
       writeState(state);
       initState = state;

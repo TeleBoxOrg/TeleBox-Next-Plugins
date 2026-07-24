@@ -1539,7 +1539,6 @@ class SpeednextPlugin extends Plugin {
     speedtest,
     st: speedtest,
   };
-}
 
 
   // Panel Settings Adapter
@@ -1581,5 +1580,6 @@ class SpeednextPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new SpeednextPlugin();

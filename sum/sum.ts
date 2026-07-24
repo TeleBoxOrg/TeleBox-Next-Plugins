@@ -1994,7 +1994,6 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`) });
       }
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -2052,14 +2051,13 @@ ${codeTag(db.data.aiConfig.default_prompt || DEFAULT_PROMPT)}`) });
     getValues: async (): Promise<Record<string, unknown>> => {
       const db = await getDB();
       return db.data.aiConfig as Record<string, unknown>;
-    }
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
       const db = await getDB();
       Object.assign(db.data.aiConfig, patch);
       await db.write();
-    }
     },
   };
+}
 
 export default new SummaryPlugin();

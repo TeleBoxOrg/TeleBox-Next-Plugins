@@ -2031,9 +2031,6 @@ class PMCaptchaPlugin extends Plugin {
   };
   cmdHandlers = { pmc, pmcaptcha };
   listenMessageHandler = messageListener;
-}
-
-const plugin = new PMCaptchaPlugin();
 
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
@@ -2114,5 +2111,8 @@ const plugin = new PMCaptchaPlugin();
       await db.write();
     },
   };
+}
+
+const plugin = new PMCaptchaPlugin();
 
 export default plugin;

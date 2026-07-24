@@ -604,7 +604,6 @@ class FbiPlugin extends Plugin {
       this.cachePersistTimer = null;
     }
   }
-}
 
 
   // Panel Settings Adapter
@@ -634,5 +633,6 @@ class FbiPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new FbiPlugin();

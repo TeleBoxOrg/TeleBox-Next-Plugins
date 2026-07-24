@@ -353,7 +353,6 @@ class NodeSeekPlugin extends Plugin {
       },
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -402,5 +401,6 @@ class NodeSeekPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new NodeSeekPlugin();

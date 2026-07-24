@@ -426,7 +426,6 @@ class EatGifPlugin extends Plugin {
     return this.downloadProfilePhoto(replyTo.sender.id);
   }
 
-}
 
 
   // Panel Settings Adapter
@@ -486,5 +485,6 @@ class EatGifPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new EatGifPlugin();

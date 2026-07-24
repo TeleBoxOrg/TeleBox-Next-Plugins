@@ -347,7 +347,6 @@ class FadianPlugin extends Plugin {
       });
     }
   }
-}
 
 
   // Panel Settings Adapter
@@ -382,5 +381,6 @@ class FadianPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new FadianPlugin();

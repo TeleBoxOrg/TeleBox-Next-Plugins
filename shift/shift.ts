@@ -2360,7 +2360,6 @@ async function handleIncomingMessage(
   } catch (error: unknown) {
     logger.error(`[SHIFT] 处理消息时出错: ${error}`);
   }
-}
 
 
   // Panel Settings Adapter
@@ -2394,5 +2393,6 @@ async function handleIncomingMessage(
       await db.write();
     },
   };
+}
 
 export default new ShiftPlugin();

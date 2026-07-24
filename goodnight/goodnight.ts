@@ -291,7 +291,6 @@ class GreetingPlugin extends Plugin {
             logger.error("回复消息失败", e);
         }
     }
-}
 
 
   // Panel Settings Adapter
@@ -326,5 +325,6 @@ class GreetingPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new GreetingPlugin();

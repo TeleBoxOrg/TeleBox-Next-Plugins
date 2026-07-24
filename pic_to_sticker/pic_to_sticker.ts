@@ -568,7 +568,6 @@ class PicToStickerPlugin extends Plugin {
       return null;
     }
   }
-}
 
 
   // Panel Settings Adapter
@@ -646,5 +645,6 @@ class PicToStickerPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new PicToStickerPlugin();

@@ -1383,7 +1383,6 @@ class MusicHubPlugin extends Plugin {
 
     await this.handleSearch(msg, config.defaultSource, args.join(" "));
   }
-}
 
 
   // Panel Settings Adapter
@@ -1446,5 +1445,6 @@ class MusicHubPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new MusicHubPlugin();

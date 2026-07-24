@@ -1761,7 +1761,6 @@ class LotteryPlugin extends Plugin {
   
   listenMessageHandler?: ((msg: MessageContext) => Promise<void>) | undefined =
     handleEnhancedLotteryJoin as unknown as (msg: MessageContext) => Promise<void>;
-}
 
 
   // Panel Settings Adapter
@@ -1807,5 +1806,6 @@ class LotteryPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new LotteryPlugin();

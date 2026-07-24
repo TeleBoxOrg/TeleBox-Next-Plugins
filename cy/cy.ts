@@ -503,7 +503,6 @@ class CyPlugin extends Plugin {
       await msg.delete();
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -548,5 +547,6 @@ class CyPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new CyPlugin();

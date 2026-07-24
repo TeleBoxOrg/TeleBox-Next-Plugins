@@ -363,37 +363,6 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
   if(!parts.length && extracedKey){if(extracedUrl)parts.push(extracedUrl);parts.push(extracedKey);}
   if(!smart.sub && extracedKey && extracedUrl && !(parts.length>=2 && (isUrl(parts[0])||isUrl(parts[1])))){
     parts=[extracedUrl, extracedKey];
-  }
-
-  if(parts.length===0||parts[0]==="help"){await msg.edit({text:html`${this.description}`});return;}
-  const sub=parts[0]?.toLowerCase();
-
-  // ── list / del / save / check ──
-  if(sub==="list"){const keys=await lk();if(!keys.length){await msg.edit({text:html`📭 还没有保存密钥\n<code>${mp}checkapi save &lt;name&gt; &lt;key&gt;</code>`});return;}const lines=[`🔑 已保存 ${keys.length} 个:`];for(const k of keys)lines.push(`  • <b>${k.name}</b>: ${mk(k.key)} (${k.provider||"auto"})${k.baseUrl?` [${(()=>{try{return new URL(k.baseUrl).hostname}catch{return k.baseUrl}})()}]`:""}`);await msg.edit({text:html`${lines.join("\n")}`});return;}
-  if(sub==="del"||sub==="delete"){const name=parts[1];if(!name){await msg.edit({text:html`❌ 用法：<code>${mp}checkapi del &lt;名称&gt;</code>`});return;}const keys=await lk();const idx=keys.findIndex(k=>k.name===name);if(idx===-1){await msg.edit({text:html`❌ <b>${name}</b> 不存在`});return;}keys.splice(idx,1);await sk(keys);await msg.edit({text:html`✅ 已删 <b>${name}</b>`});return;}
-  if(sub==="save"){let name:string|undefined,key:string|undefined,baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!name){name=a;continue;}if(!key){key=a;continue;}if(!baseUrl){baseUrl=nu(a);continue;}}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!name||!key){await msg.edit({text:html`❌ 用法：<code>${mp}checkapi save &lt;名称&gt; &lt;key&gt; [url]</code>`});return;}const keys=await lk();const info=dp(key,baseUrl);const entry:SK={name,key,baseUrl,provider:info.provider,addedAt:Date.now()};const idx=keys.findIndex(k=>k.name===name);if(idx>=0)keys[idx]=entry;else keys.push(entry);await sk(keys);await msg.edit({text:html`🔍 正在验证 <b>${name}</b>...`});const valid=await validateKey(info.provider,key,info.baseUrl);await msg.edit({text:html`✅ ${idx>=0?"已更新":"已保存"} <b>${name}</b> → <code>${mp}checkapi ${name}</code>\n${valid}`});return;}
-  if(sub==="check"){const target=parts[1]||"all";if(target==="all"){const keys=await lk();if(!keys.length){await msg.edit({text:html`📭 还没有保存密钥`});return;}await msg.edit({text:html`正在检测 ${keys.length} 个密钥...`});const results:string[]=[];const promises=keys.map(async(k)=>{const info=dp(k.key,k.baseUrl);try{return[`\n━━━ <b>${k.name}</b> ━━━`,...(await fcv2(info.provider,k.key,k.baseUrl||info.baseUrl))]as string[]}catch(e:unknown){return[`\n━━━ <b>${k.name}</b> ━━━`,`⚠️ ${ge(e)}`]as string[]}});const batches=await Promise.all(promises);for(const row of batches)results.push(...row);await msg.edit({text:html`${results.join("\n")}`});return;}const keys=await lk();const found=keys.find(k=>k.name===target);if(!found){await msg.edit({text:html`❌ <b>${target}</b> 不存在`});return;}await msg.edit({text:html`🔍 正在检测 <b>${target}</b>...`});const info=dp(found.key,found.baseUrl);const results=await fcv2(info.provider,found.key,found.baseUrl||info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
-
-  // ── models / ask / speed ──
-  if(sub==="models"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi models &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key);await msg.edit({text:html`🔍 ${info.displayName} 模型列表...`});const result=await lmf(info.provider,key,info.baseUrl);await msg.edit({text:html`${result}`});return;}
-  if(sub==="ask"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);const qParts:string[]=[];for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key&&(/^sk-|gsk_|tgp_|pplx-|r8_|fw_|xai-|AIza|co-|hf_|nvapi-/i.test(a)||a.length>=24)){key=a;continue;}if(!key){key=a;continue;}qParts.push(a);}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);const prompt=qParts.join(" ")||"say hello";if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi ask <key|name> <问题></code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`💬 ${htmlEscape(info.displayName)}: "${htmlEscape(prompt)}" ...`});const chat=await ct(info.provider,key,info.baseUrl,prompt);if(chat.ok){const l=[`💬 <b>${htmlEscape(info.displayName)}</b>`,`🤖 <code>${htmlEscape(chat.model)}</code> | 🕐 ${chat.elapsedMs}ms`,`📝 ${htmlEscape(chat.text)}`];if(chat.usage)l.push(`📊 入${chat.usage.prompt} 出${chat.usage.completion} 计${chat.usage.total}`);if(chat.headers)l.push(fh(chat.headers));await msg.edit({text:html`${l.join("\n")}`});}else{await msg.edit({text:html`❌ (${chat.elapsedMs||"?"}ms): ${htmlEscape(chat.error)}`});}return;}if(sub==="speed"){const keys=await lk();let key:string|undefined;let baseUrl:string|undefined;const args=parts.slice(1);for(const a of args){if(isUrl(a)&&!baseUrl){baseUrl=nu(a);continue;}const found=keys.find(k=>k.name===a);if(found&&!key){key=found.key;baseUrl=baseUrl||found.baseUrl;continue;}if(!key)key=a;}if(!key&&extracedKey)key=extracedKey;if(!baseUrl&&extracedUrl)baseUrl=nu(extracedUrl);if(!key){await msg.edit({text:html`❌ <code>${mp}checkapi speed &lt;key|name&gt;</code>`});return;}const info=baseUrl?await probeApi(baseUrl,key):dp(key,baseUrl);await msg.edit({text:html`⚡ ${htmlEscape(info.displayName)} 速度测试中...`});const results=await speedTest(info.provider,key,info.baseUrl);await msg.edit({text:html`${results.join("\n")}`});return;}
-
-  // ── compare: two keys side by side ──
-  if(sub==="compare"){const [a,b]=[parts[1],parts[2]];if(!a||!b){await msg.edit({text:html`❌ <code>${mp}checkapi compare &lt;key1|name1&gt; &lt;key2|name2&gt;</code>`});return;};const keys=await lk();const resolve=(input:string)=>{const f=keys.find(k=>k.name===input);return f?{key:f.key,baseUrl:f.baseUrl,label:f.name}:{key:input,baseUrl:undefined,label:mk(input)};};const r1=resolve(a),r2=resolve(b);const p1=dp(r1.key,r1.baseUrl),p2=dp(r2.key,r2.baseUrl);await msg.edit({text:html`🔍 正在对比 <b>${htmlEscape(r1.label)}</b> vs <b>${htmlEscape(r2.label)}</b>...`});const [s1,s2]=await Promise.all([fcv2(p1.provider,r1.key,p1.baseUrl),fcv2(p2.provider,r2.key,r2.baseUrl)]);const m=[`⚖️ <b>${htmlEscape(p1.displayName)}</b> (${htmlEscape(r1.label)})`,...s1,`\n━━━━━━━━━━━━━━━━`,...s2];await msg.edit({text:html`${m.join("\n")}`});return;}
-
-  // ── Inline key: auto-detect + full check ──
-  let key:string,baseUrl:string|undefined;let label:string;const keys=await lk();
-  if(parts.length>=2&&isUrl(parts[0])){baseUrl=nu(parts[0]);key=parts[1];label=mk(key);}
-  else if(parts.length>=2&&isUrl(parts[1])){key=parts[0];baseUrl=nu(parts[1]);const found=keys.find(k=>k.name===key);label=found?found.name:mk(key);key=found?found.key:key;}
-  else{const input=parts[0];const found=keys.find(k=>k.name===input);key=found?found.key:input;baseUrl=found?.baseUrl;label=found?found.name:mk(key);}
-  let info:PI;if(baseUrl){await msg.edit({text:html`检测中...`});info=await probeApi(baseUrl,key);}else{info=dp(key,baseUrl);}
-  await msg.edit({text:html`🔍 <b>${htmlEscape(label)}</b> (${htmlEscape(info.displayName)}) 检测中...`});
-  const results=await fcv2(info.provider,key,info.baseUrl);
-  results.unshift(`🔍 <b>${htmlEscape(label)}</b>`);
-  await msg.edit({text:html`${results.join("\n")}`});
-},};}
-
-
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
     id: "checkapi",
@@ -429,5 +398,6 @@ cmdHandlers:Record<string,(msg:MessageContext)=>Promise<void>>={checkapi:async(m
       await db.write();
     },
   };
+}
 
 export default new CheckApiPlugin();

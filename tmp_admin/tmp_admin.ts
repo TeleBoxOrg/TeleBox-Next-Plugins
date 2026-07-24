@@ -965,7 +965,6 @@ class TmpAdminPlugin extends Plugin {
 
     return {};
   }
-}
 
 
   // Panel Settings Adapter
@@ -992,5 +991,6 @@ class TmpAdminPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new TmpAdminPlugin();

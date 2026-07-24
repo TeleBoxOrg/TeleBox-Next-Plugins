@@ -605,7 +605,6 @@ class PanguPlugin extends Plugin {
   };
 
   listenMessageHandlerIgnoreEdited = false;
-}
 
 
   // Panel Settings Adapter
@@ -642,5 +641,6 @@ class PanguPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new PanguPlugin();

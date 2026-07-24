@@ -421,7 +421,6 @@ class TTSPlugin extends Plugin {
 • 更多角色选择请查看: https://fish.audio/zh-CN/app/discovery/
 `;
   cmdHandlers = { t: tts, ts: ttsSet, tk: setApiKey };
-}
 
 
   // Panel Settings Adapter
@@ -459,5 +458,6 @@ class TTSPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new TTSPlugin();

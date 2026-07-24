@@ -633,7 +633,6 @@ class WhoisPlugin extends Plugin {
       });
   }
 
-}
 
 
   // Panel Settings Adapter
@@ -663,5 +662,6 @@ class WhoisPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new WhoisPlugin();

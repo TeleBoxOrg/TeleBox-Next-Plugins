@@ -512,7 +512,6 @@ class GifStickerPlugin extends Plugin {
     }
     pendingTimers.clear();
   }
-}
 
 
   // Panel Settings Adapter
@@ -590,5 +589,6 @@ class GifStickerPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default GifStickerPlugin;

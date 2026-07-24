@@ -1675,24 +1675,6 @@ America/New_York
   destroy(): void {
     nameManager.cleanup();
   }
-}
-
-const plugin = new AutoChangeNamePlugin();
-
-if (process.env.TELEBOX_AUTO_INIT !== 'false') {
-  (async () => { try { await plugin.init(); } catch (e: unknown) { logger.error("autochangename: init failed", e); } })();
-}
-
-export const __test__ = {
-  htmlEscape,
-  cleanTimeFromName: nameManager.cleanTimeFromName.bind(nameManager),
-  formatTime: nameManager.formatTime.bind(nameManager),
-  getClockEmoji: nameManager.getClockEmoji.bind(nameManager),
-  getTimezoneDisplay: nameManager.getTimezoneDisplay.bind(nameManager),
-  applyTextStyle: nameManager.applyTextStyle.bind(nameManager),
-  generateNewName: nameManager.generateNewName.bind(nameManager)
-};
-
 
   // Panel Settings Adapter
   panelAdapter: PanelSettingsAdapter = {
@@ -1738,5 +1720,22 @@ export const __test__ = {
       await db.write();
     },
   };
+}
+
+const plugin = new AutoChangeNamePlugin();
+
+if (process.env.TELEBOX_AUTO_INIT !== 'false') {
+  (async () => { try { await plugin.init(); } catch (e: unknown) { logger.error("autochangename: init failed", e); } })();
+}
+
+export const __test__ = {
+  htmlEscape,
+  cleanTimeFromName: nameManager.cleanTimeFromName.bind(nameManager),
+  formatTime: nameManager.formatTime.bind(nameManager),
+  getClockEmoji: nameManager.getClockEmoji.bind(nameManager),
+  getTimezoneDisplay: nameManager.getTimezoneDisplay.bind(nameManager),
+  applyTextStyle: nameManager.applyTextStyle.bind(nameManager),
+  generateNewName: nameManager.generateNewName.bind(nameManager)
+};
 
 export default plugin;

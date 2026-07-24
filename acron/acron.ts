@@ -1309,7 +1309,6 @@ class AcronPlugin extends Plugin {
       }
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -1345,5 +1344,6 @@ class AcronPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new AcronPlugin();

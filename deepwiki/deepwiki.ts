@@ -970,7 +970,6 @@ class DeepWikiPlugin extends Plugin {
   async onUnload(): Promise<void> {
     await this.cleanup();
   }
-}
 
 
   // Panel Settings Adapter
@@ -1008,5 +1007,6 @@ class DeepWikiPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new DeepWikiPlugin();

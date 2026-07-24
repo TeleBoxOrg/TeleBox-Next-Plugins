@@ -414,7 +414,6 @@ class GitManagerPlugin extends Plugin {
     report += `\n🎉 <b>操作完成:</b> ${successCount}个成功, ${failCount}个失败。`;
     await sendLongMessage(msg, report);
   }
-}
 
 
   // Panel Settings Adapter
@@ -458,5 +457,6 @@ class GitManagerPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new GitManagerPlugin();

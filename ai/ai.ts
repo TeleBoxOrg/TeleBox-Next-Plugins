@@ -5170,7 +5170,6 @@ class AIPlugin extends Plugin {
     const configManager = await this.configManagerPromise;
     await configManager.destroy();
   }
-}
 
 
   // Panel Settings Adapter
@@ -5292,5 +5291,6 @@ class AIPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new AIPlugin();

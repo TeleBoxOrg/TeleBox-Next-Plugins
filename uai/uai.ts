@@ -655,7 +655,6 @@ class UAIPlugin extends Plugin {
             }
         }
     };
-}
 
 
   // Panel Settings Adapter
@@ -696,5 +695,6 @@ class UAIPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new UAIPlugin();

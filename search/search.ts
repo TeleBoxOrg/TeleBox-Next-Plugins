@@ -970,7 +970,6 @@ class ChannelSearchPlugin extends Plugin {
     so,
     search: so,
   };
-}
 
 
   // Panel Settings Adapter
@@ -1017,5 +1016,6 @@ class ChannelSearchPlugin extends Plugin {
       await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2));
     },
   };
+}
 
 export default new ChannelSearchPlugin();

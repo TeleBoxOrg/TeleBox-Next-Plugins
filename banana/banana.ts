@@ -491,7 +491,6 @@ class BananaPlugin extends Plugin {
   cmdHandlers: Record<string, (msg: MessageContext) => Promise<void>> = {
     banana: handleBananaCommand,
   };
-}
 
 
   // Panel Settings Adapter
@@ -527,5 +526,6 @@ class BananaPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new BananaPlugin();

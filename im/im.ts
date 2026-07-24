@@ -592,7 +592,6 @@ class ImageMonitorPlugin extends Plugin {
     }
     pendingTimers.clear();
   }
-}
 
 
   // Panel Settings Adapter
@@ -634,5 +633,6 @@ class ImageMonitorPlugin extends Plugin {
       await db.write();
     },
   };
+}
 
 export default new ImageMonitorPlugin();

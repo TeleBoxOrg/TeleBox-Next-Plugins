@@ -649,7 +649,6 @@ echo "后端: http://\\$IP:3001/\\$SECRET"`;
       }
     },
   };
-}
 
 
   // Panel Settings Adapter
@@ -682,5 +681,6 @@ echo "后端: http://\\$IP:3001/\\$SECRET"`;
       await db.write();
     },
   };
+}
 
 export default new SubStorePlugin();

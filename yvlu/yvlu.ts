@@ -6,7 +6,7 @@ import { htmlEscape } from "@utils/htmlEscape";
 import axios from "axios";
 import _ from "lodash";
 import { getPrefixes } from "@utils/pluginManager";
-import { Plugin, type PanelSettingsAdapter, type PanelSettingField, type PanelFieldType } from "@utils/pluginBase";
+import { Plugin } from "@utils/pluginBase";
 import {
   createDirectoryInAssets,
   createDirectoryInTemp,
@@ -820,12 +820,35 @@ class YvluPlugin extends Plugin {
         outputFormat = args[1] === "png" ? "image" : args[1];
         count = parseInt(args[2]) || 1;
         valid = true;
+      } else {
+        // 造谣文本本身也是合法参数，后续解析器会保留完整原文。
+        valid = true;
       }
 
       if (saveToSet) {
         // 处理保存贴纸/图片到贴纸包的逻辑
         await this.handleSaveStickerToSet(msg);
       } else if (valid) {
+        // 造谣模式：第一个非选项参数起，后续内容全部按原文保留。
+        const optionArgs = args.slice(1);
+        let fabricateText: string | undefined;
+        for (let i = 0; i < optionArgs.length; i++) {
+          const value = optionArgs[i].toLowerCase();
+          const isOption =
+            value === "r" ||
+            value === "reply" ||
+            value === "s" ||
+            value === "webp" ||
+            value === "image" ||
+            value === "png" ||
+            value === "stories" ||
+            /^\d+$/.test(value);
+          if (!isOption) {
+            fabricateText = optionArgs.slice(i).join(" ");
+            break;
+          }
+        }
+
         let replied = await safeGetReplyMessage(msg);
         if (!replied) {
           await msg.edit({ text: "请回复一条消息" });
@@ -1202,8 +1225,8 @@ class YvluPlugin extends Plugin {
                   ? String(emojiStatus)
                   : undefined,
               },
-              text: message.text || "",
-              entities: entities,
+              text: fabricateText && i === 0 ? fabricateText : (message.text || ""),
+              entities: fabricateText && i === 0 ? [] : entities,
               avatar: shouldShowAvatar,
               ...(replyBlock ? { replyMessage: replyBlock } : {}),
             };
@@ -1765,31 +1788,5 @@ ${codeTag(this.configPath)}
     }
   }
 }
-
-
-  // Panel Settings Adapter
-  panelAdapter: PanelSettingsAdapter = {
-    id: "yvlu",
-    title: "语录贴纸",
-    description: "语录贴纸配置",
-    category: "插件配置",
-    icon: "💬",
-    getSchema: (): PanelSettingField[] => [
-      {
-            "key": "stickerSetShortName",
-            "label": "贴纸包短名",
-            "type": "string"
-      }
-],
-    getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<YvluConfig>(path.join(createDirectoryInAssets("yvlu"), "config.json"), defaultConfig);
-      return db.data as Record<string, unknown>;
-    },
-    setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<YvluConfig>(path.join(createDirectoryInAssets("yvlu"), "config.json"), defaultConfig);
-      Object.assign(db.data, patch);
-      await db.write();
-    },
-  };
 
 export default new YvluPlugin();

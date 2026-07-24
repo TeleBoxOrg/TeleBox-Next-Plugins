@@ -988,7 +988,6 @@ class SpeedlinkPlugin extends Plugin {
     speedlink: speedtest,
     sl: speedtest,
   };
-}
 
 
   // Panel Settings Adapter
@@ -1045,16 +1044,15 @@ class SpeedlinkPlugin extends Plugin {
       }
 ],
     getValues: async (): Promise<Record<string, unknown>> => {
-      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key");
-const CONFIG_PATH = path.join(ASSETS_DIR, "config.json"), {} as any);
+      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
       return db.data as Record<string, unknown>;
     },
     setValues: async (patch: Record<string, unknown>): Promise<void> => {
-      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key");
-const CONFIG_PATH = path.join(ASSETS_DIR, "config.json"), {} as any);
+      const db = await JSONFilePreset<ServerConfig>(path.join(ASSETS_DIR, "secret.key"), {} as any);
       Object.assign(db.data, patch);
       await db.write();
     },
   };
+}
 
 export default new SpeedlinkPlugin();
